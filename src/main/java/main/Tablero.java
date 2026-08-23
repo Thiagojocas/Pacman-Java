@@ -6,13 +6,14 @@ import java.awt.Graphics;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 
 public class Tablero extends JPanel {
 
-    // Tamaño ajustado para pantalla 1366x768 (Juana Manso 11,6")
     public static final int TILE_SIZE = 21;
     public static final int COLUMNAS = 28;
     public static final int FILAS = 31;
+    public static final int FILA_TUNEL = 14; // fila con abertura en columna 0 y 27
 
     private PacmanJugador pacman;
 
@@ -20,10 +21,11 @@ public class Tablero extends JPanel {
         setPreferredSize(new Dimension(COLUMNAS * TILE_SIZE, FILAS * TILE_SIZE));
         setBackground(Color.BLACK);
 
-        // Posición inicial: fila 1, columna 1 (celda libre del mapa)
-        int xInicial = 1 * TILE_SIZE + 2;
-        int yInicial = 1 * TILE_SIZE + 2;
-        pacman = new PacmanJugador(xInicial, yInicial);
+        // Posicion inicial: DEBE ser multiplo de TILE_SIZE para que el
+        // sistema de alineacion a la grilla funcione desde el arranque.
+        int filaInicial = 1;
+        int columnaInicial = 1;
+        pacman = new PacmanJugador(columnaInicial * TILE_SIZE, filaInicial * TILE_SIZE);
 
         setFocusable(true);
         addKeyListener(new KeyAdapter() {
@@ -31,80 +33,121 @@ public class Tablero extends JPanel {
             public void keyPressed(KeyEvent e) {
                 int codigo = e.getKeyCode();
 
+                // Ya NO movemos aca. Solo guardamos la intencion del jugador;
+                // el Timer decide cuando aplicarla (al llegar al centro de una celda).
                 if (codigo == KeyEvent.VK_RIGHT) {
-                    intentarMover("derecha");
+                    pacman.setDireccionDeseada("derecha");
                 } else if (codigo == KeyEvent.VK_LEFT) {
-                    intentarMover("izquierda");
+                    pacman.setDireccionDeseada("izquierda");
                 } else if (codigo == KeyEvent.VK_UP) {
-                    intentarMover("arriba");
+                    pacman.setDireccionDeseada("arriba");
                 } else if (codigo == KeyEvent.VK_DOWN) {
-                    intentarMover("abajo");
+                    pacman.setDireccionDeseada("abajo");
                 }
-
-                repaint();
             }
         });
+
+        // Game loop: se ejecuta cada 50ms (20 veces por segundo)
+        Timer timer = new Timer(50, e -> {
+            actualizarMovimiento();
+            repaint();
+        });
+        timer.start();
     }
 
-    // Calcula la posicion siguiente segun la direccion, verifica colision
-    // contra la matriz del mapa y recien ahi mueve a pacman de verdad.
-    private void intentarMover(String direccion) {
-        int vel = pacman.getVelocidad();
-        int nuevoX = pacman.getX();
-        int nuevoY = pacman.getY();
+    // Logica central del movimiento por celdas
+    private void actualizarMovimiento() {
+        boolean centrado = (pacman.getX() % TILE_SIZE == 0) && (pacman.getY() % TILE_SIZE == 0);
+
+        if (centrado) {
+            int fila = pacman.getY() / TILE_SIZE;
+            int columna = pacman.getX() / TILE_SIZE;
+
+            // Si el jugador pidio girar y ese camino esta libre, se adopta ahora.
+            // Esto es lo que permite doblar justo en las esquinas, no antes ni despues.
+            if (puedeAvanzar(fila, columna, pacman.getDireccionDeseada())) {
+                pacman.setDireccionActual(pacman.getDireccionDeseada());
+            }
+
+            // Si la direccion actual choca con pared, Pacman se frena
+            // exactamente centrado en la celda (nunca queda a mitad de camino).
+            if (!puedeAvanzar(fila, columna, pacman.getDireccionActual())) {
+                return;
+            }
+        }
+
+        moverSegunDireccionActual();
+        aplicarTunel();
+    }
+
+    // Revisa si desde (fila, columna) se puede avanzar un paso en esa direccion
+    private boolean puedeAvanzar(int fila, int columna, String direccion) {
+        if (direccion == null) {
+            return false;
+        }
+
+        int filaDestino = fila;
+        int columnaDestino = columna;
 
         switch (direccion) {
             case "derecha":
-                nuevoX += vel;
+                columnaDestino++;
                 break;
             case "izquierda":
-                nuevoX -= vel;
+                columnaDestino--;
                 break;
             case "arriba":
-                nuevoY -= vel;
+                filaDestino--;
                 break;
             case "abajo":
-                nuevoY += vel;
+                filaDestino++;
                 break;
         }
 
-        if (!colisionaConPared(nuevoX, nuevoY)) {
-            switch (direccion) {
-                case "derecha":
-                    pacman.moverDerecha();
-                    break;
-                case "izquierda":
-                    pacman.moverIzquierda();
-                    break;
-                case "arriba":
-                    pacman.moverArriba();
-                    break;
-                case "abajo":
-                    pacman.moverAbajo();
-                    break;
-            }
+        // Tunel: en la fila habilitada, dejar "salir" del mapa por los bordes
+        // en vez de bloquear como si fuera pared.
+        if (fila == FILA_TUNEL && (columnaDestino < 0 || columnaDestino >= COLUMNAS)) {
+            return true;
+        }
+
+        return !esPared(filaDestino, columnaDestino);
+    }
+
+    // Si Pacman cruzo el borde del mapa por el tunel, lo reaparece del otro lado
+    private void aplicarTunel() {
+        if (pacman.getY() != FILA_TUNEL * TILE_SIZE) {
+            return;
+        }
+
+        int limiteDerecho = (COLUMNAS - 1) * TILE_SIZE;
+
+        if (pacman.getX() < 0) {
+            pacman.setX(limiteDerecho);
+        } else if (pacman.getX() > limiteDerecho) {
+            pacman.setX(0);
         }
     }
 
-    // Revisa las 4 esquinas del cuadrado de pacman contra la matriz de mapa
-    private boolean colisionaConPared(int x, int y) {
-        int tam = PacmanJugador.TAMANO;
-
-        int[][] esquinas = {
-            {x, y},
-            {x + tam - 1, y},
-            {x, y + tam - 1},
-            {x + tam - 1, y + tam - 1}
-        };
-
-        for (int[] esquina : esquinas) {
-            int columna = esquina[0] / TILE_SIZE;
-            int fila = esquina[1] / TILE_SIZE;
-            if (esPared(fila, columna)) {
-                return true;
-            }
+    private void moverSegunDireccionActual() {
+        String dir = pacman.getDireccionActual();
+        if (dir == null) {
+            return;
         }
-        return false;
+
+        switch (dir) {
+            case "derecha":
+                pacman.moverDerecha();
+                break;
+            case "izquierda":
+                pacman.moverIzquierda();
+                break;
+            case "arriba":
+                pacman.moverArriba();
+                break;
+            case "abajo":
+                pacman.moverAbajo();
+                break;
+        }
     }
 
     public boolean esPared(int fila, int columna) {
@@ -155,6 +198,6 @@ public class Tablero extends JPanel {
 
     private void dibujarPacman(Graphics g) {
         g.setColor(Color.YELLOW);
-        g.fillOval(pacman.getX(), pacman.getY(), PacmanJugador.TAMANO, PacmanJugador.TAMANO);
+        g.fillOval(pacman.getX() + 1, pacman.getY() + 1, PacmanJugador.TAMANO, PacmanJugador.TAMANO);
     }
 }

@@ -2,18 +2,20 @@ package main;
 
 public class PacmanJugador {
 
-    public static final int TAMANO = 18; // debe ser menor al TILE_SIZE del tablero
+    public static final int TAMANO = 18; // tamaño visual, se dibuja con leve inset
 
     private int x;
     private int y;
     private int velocidad;
-    private String direccion;
+    private String direccionActual;   // la que se está ejecutando de verdad
+    private String direccionDeseada;  // la última tecla que tocó el jugador
 
     public PacmanJugador(int xInicial, int yInicial) {
         x = xInicial;
         y = yInicial;
-        velocidad = 4;
-        direccion = "derecha";
+        velocidad = 7; // debe ser divisor exacto de Tablero.TILE_SIZE
+        direccionActual = null;
+        direccionDeseada = null;
     }
 
     public int getX() {
@@ -36,31 +38,35 @@ public class PacmanJugador {
         return velocidad;
     }
 
-    public String getDireccion() {
-        return direccion;
+    public String getDireccionActual() {
+        return direccionActual;
     }
 
-    public void setDireccion(String direccion) {
-        this.direccion = direccion;
+    public void setDireccionActual(String direccionActual) {
+        this.direccionActual = direccionActual;
+    }
+
+    public String getDireccionDeseada() {
+        return direccionDeseada;
+    }
+
+    public void setDireccionDeseada(String direccionDeseada) {
+        this.direccionDeseada = direccionDeseada;
     }
 
     public void moverDerecha() {
         x = x + velocidad;
-        direccion = "derecha";
     }
 
     public void moverIzquierda() {
         x = x - velocidad;
-        direccion = "izquierda";
     }
 
     public void moverArriba() {
         y = y - velocidad;
-        direccion = "arriba";
     }
 
     public void moverAbajo() {
         y = y + velocidad;
-        direccion = "abajo";
     }
 }
