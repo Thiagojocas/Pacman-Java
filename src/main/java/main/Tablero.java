@@ -165,6 +165,12 @@ public class Tablero extends JPanel {
         super.paintComponent(g);
         dibujarMapa(g);
         dibujarPacman(g);
+        dibujarPuntaje(g);
+        }
+        private void dibujarPuntaje(Graphics g) {
+            g.setColor(Color.WHITE);
+            g.setFont(g.getFont().deriveFont(18f));
+            g.drawString("Puntaje: " + Puntos.getPuntaje(), 10, 20);
     }
 
     private void dibujarMapa(Graphics g) {
