@@ -62,6 +62,9 @@ public class Tablero extends JPanel {
         if (centrado) {
             int fila = pacman.getY() / TILE_SIZE;
             int columna = pacman.getX() / TILE_SIZE;
+            
+             // Pacman come el punto de la celda actual
+            Puntos.comerPunto(fila, columna);
 
             // Si el jugador pidio girar y ese camino esta libre, se adopta ahora.
             // Esto es lo que permite doblar justo en las esquinas, no antes ni despues.
