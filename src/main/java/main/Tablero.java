@@ -18,7 +18,8 @@ public class Tablero extends JPanel {
     private PacmanJugador pacman;
     private Fantasma fantasma;
     private Timer timer;
-    private boolean juegoTerminado;
+    private boolean juegoTerminado; // Indica si el juego ya terminó.
+    private boolean gano; // Indica si el jugador ganó. true = ganó | false = todavía no ganó.
 
     public Tablero() {
         setPreferredSize(new Dimension(COLUMNAS * TILE_SIZE, FILAS * TILE_SIZE));
@@ -85,8 +86,11 @@ public class Tablero extends JPanel {
 
             // Comprobamos si ya no queda ningún punto en el mapa.
             if (Puntos.todosLosPuntosComidos()) {
+                
+                // Indicamos que el jugador ganó.
+                gano = true;
 
-                // Marcamos el juego como terminado.
+                // Indicamos que el juego terminó.
                 juegoTerminado = true;
 
                 // Detenemos el Timer.
@@ -356,7 +360,29 @@ public class Tablero extends JPanel {
         dibujarPacman(g);
         dibujarFantasma(g);
         dibujarPuntaje(g);
+        if (gano){dibujarPantallaWin(g);}
         }
+    // Dibuja la pantalla que aparece cuando el jugador gana.
+        private void dibujarPantallaWin(Graphics g) {
+
+            // Fondo negro para cubrir el tablero.
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            // Color del texto.
+            g.setColor(Color.YELLOW);
+
+            // Tamaño de la letra.
+            g.setFont(g.getFont().deriveFont(32f));
+
+            // Mensaje principal.
+            g.drawString("¡GANASTE!", 250, 250);
+
+            // Mostramos el puntaje final.
+            g.setFont(g.getFont().deriveFont(20f));
+            g.drawString("Puntaje: " + Puntos.getPuntaje(), 260, 290);
+        }
+    
         private void dibujarPuntaje(Graphics g) {
             g.setColor(Color.WHITE);
             g.setFont(g.getFont().deriveFont(18f));
