@@ -20,6 +20,7 @@ public class Tablero extends JPanel {
     private Timer timer;
     private boolean juegoTerminado; // Indica si el juego ya terminó.
     private boolean gano; // Indica si el jugador ganó. true = ganó | false = todavía no ganó.
+    private boolean perdio; // Indica si el jugador choco con algun fantasma. true = perdio | false = no perdio.
 
     public Tablero() {
         setPreferredSize(new Dimension(COLUMNAS * TILE_SIZE, FILAS * TILE_SIZE));
@@ -362,26 +363,57 @@ public class Tablero extends JPanel {
         dibujarPuntaje(g);
         if (gano){dibujarPantallaWin(g);}
         }
-    // Dibuja la pantalla que aparece cuando el jugador gana.
-        private void dibujarPantallaWin(Graphics g) {
+    // Dibuja la pantalla que aparece cuando Pac-Man gana.
+    private void dibujarPantallaWin(Graphics g) {
 
-            // Fondo negro para cubrir el tablero.
-            g.setColor(Color.BLACK);
-            g.fillRect(0, 0, getWidth(), getHeight());
+        // Pintamos todo el tablero de negro.
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, getWidth(), getHeight());
 
-            // Color del texto.
-            g.setColor(Color.YELLOW);
+        // Elegimos el color amarillo para el título.
+        g.setColor(Color.YELLOW);
 
-            // Tamaño de la letra.
-            g.setFont(g.getFont().deriveFont(32f));
+        // Elegimos el tamaño de la letra.
+        g.setFont(g.getFont().deriveFont(40f));
 
-            // Mensaje principal.
-            g.drawString("¡GANASTE!", 250, 250);
+        String titulo = "¡GANASTE!";
 
-            // Mostramos el puntaje final.
-            g.setFont(g.getFont().deriveFont(20f));
-            g.drawString("Puntaje: " + Puntos.getPuntaje(), 260, 290);
-        }
+        // Calculamos cuánto mide el texto.
+        int anchoTitulo = g.getFontMetrics().stringWidth(titulo);
+
+        // Calculamos la posición X para centrarlo.
+        int xTitulo = (getWidth() - anchoTitulo) / 2;
+
+        // Posición vertical del título.
+        int yTitulo = 230;
+
+        // Dibujamos el título.
+        g.drawString(titulo, xTitulo, yTitulo);
+
+        // Cambiamos el tamaño de la letra.
+        g.setFont(g.getFont().deriveFont(22f));
+
+        String textoPuntaje = "Puntaje: " + Puntos.getPuntaje();
+
+        // Calculamos cuánto mide el texto del puntaje.
+        int anchoPuntaje = g.getFontMetrics().stringWidth(textoPuntaje);
+
+        // Lo centramos horizontalmente.
+        int xPuntaje = (getWidth() - anchoPuntaje) / 2;
+
+        // Dibujamos el puntaje.
+        g.drawString(textoPuntaje, xPuntaje, 280);
+
+        g.setFont(g.getFont().deriveFont(18f));
+
+        String mensaje = "¡Comiste todas las bolitas!";
+
+        int anchoMensaje = g.getFontMetrics().stringWidth(mensaje);
+
+        int xMensaje = (getWidth() - anchoMensaje) / 2;
+
+        g.drawString(mensaje, xMensaje, 320);
+    }
     
         private void dibujarPuntaje(Graphics g) {
             g.setColor(Color.WHITE);
