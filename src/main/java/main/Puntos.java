@@ -5,6 +5,34 @@ public class Puntos {
     // Guarda el puntaje actual de Pac-Man.
     // Empieza en 0 porque todavía no comió ningún punto.
     private static int puntaje = 0;
+    
+    // Guarda la cantidad de puntos normales que todavía quedan en el mapa.
+    private static int puntosRestantes = contarPuntosIniciales();
+    
+    // Cuenta todos los puntos normales que existen en el mapa al comenzar el juego.
+    private static int contarPuntosIniciales() {
+
+    // Variable donde vamos a guardar la cantidad de puntos encontrados.
+    int cantidad = 0;
+
+    // Recorremos todas las filas de la matriz.
+    for (int fila = 0; fila < mapa.MATRIZ.length; fila++) {
+
+        // Recorremos todas las columnas de cada fila.
+        for (int columna = 0; columna < mapa.MATRIZ[0].length; columna++) {
+
+            // En nuestro mapa, el número 2 representa un punto normal.
+            if (mapa.MATRIZ[fila][columna] == 2) {
+
+                // Encontramos un punto, así que aumentamos el contador.
+                cantidad++;
+            }
+        }
+    }
+
+    // Devolvemos la cantidad total de puntos encontrados.
+    return cantidad;
+}
 
     // Este método recibe la FILA y la COLUMNA donde se encuentra Pac-Man.
     // Devuelve:
@@ -34,6 +62,9 @@ public class Puntos {
 
             // Cada punto comido suma 10 al puntaje.
             puntaje += 10;
+            
+            // Como acabamos de comer un punto, queda uno menos en el mapa.
+            puntosRestantes--;
 
             // Avisamos que efectivamente se comió un punto.
             return true;
@@ -46,5 +77,14 @@ public class Puntos {
     // Este método permite que otras clases puedan consultar cuánto puntaje tiene actualmente Pac-Man. 
     public static int getPuntaje() {
         return puntaje;
+    }
+    // Devuelve la cantidad de puntos normales que todavía quedan en el mapa.
+    public static int getPuntosRestantes() {
+    return puntosRestantes;
+    }
+
+    // Comprueba si Pac-Man ya comió todos los puntos.
+    public static boolean todosLosPuntosComidos() {
+    return puntosRestantes == 0;
     }
 }

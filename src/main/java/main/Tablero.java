@@ -77,6 +77,26 @@ public class Tablero extends JPanel {
         if (centrado) {
             int fila = pacman.getY() / TILE_SIZE;
             int columna = pacman.getX() / TILE_SIZE;
+            
+            // Pacman come el punto de la celda actual
+            Puntos.comerPunto(fila, columna);
+            
+            // Pac-Man acaba de comer el punto de esta celda.
+
+            // Comprobamos si ya no queda ningún punto en el mapa.
+            if (Puntos.todosLosPuntosComidos()) {
+
+                // Marcamos el juego como terminado.
+                juegoTerminado = true;
+
+                // Detenemos el Timer.
+                // Al detenerlo, Pac-Man y los fantasmas dejan de moverse.
+                timer.stop();
+
+                // Por ahora mostramos un mensaje en la consola.
+                // Más adelante lo reemplazaremos por nuestra pantalla WIN.
+                System.out.println("¡GANASTE! Pac-Man comió todos los puntos.");
+            }
 
             // Si el jugador pidio girar y ese camino esta libre, se adopta ahora.
             // Esto es lo que permite doblar justo en las esquinas, no antes ni despues.
@@ -335,6 +355,12 @@ public class Tablero extends JPanel {
         dibujarMapa(g);
         dibujarPacman(g);
         dibujarFantasma(g);
+        dibujarPuntaje(g);
+        }
+        private void dibujarPuntaje(Graphics g) {
+            g.setColor(Color.WHITE);
+            g.setFont(g.getFont().deriveFont(18f));
+            g.drawString("Puntaje: " + Puntos.getPuntaje(), 10, 20);
     }
 
     private void dibujarMapa(Graphics g) {
