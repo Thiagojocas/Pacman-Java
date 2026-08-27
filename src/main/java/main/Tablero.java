@@ -16,7 +16,10 @@ public class Tablero extends JPanel {
     public static final int FILA_TUNEL = 14; // fila con abertura en columna 0 y 27
 
     private PacmanJugador pacman;
-    private Fantasma fantasma;
+    private Fantasma fantasma1;
+    private Fantasma fantasma2;
+    private Fantasma fantasma3;
+    private Fantasma fantasma4;
     private Timer timer;
     private boolean juegoTerminado; // Indica si el juego ya terminó.
     private boolean gano; // Indica si el jugador ganó. true = ganó | false = todavía no ganó.
@@ -32,11 +35,17 @@ public class Tablero extends JPanel {
         int columnaInicial = 1;
         pacman = new PacmanJugador(columnaInicial * TILE_SIZE, filaInicial * TILE_SIZE);
 
-        // Punto de partida del fantasma: pasillo abierto justo arriba
-        // de la puerta de la casa de fantasmas.
-        int filaFantasma = 11;
-        int columnaFantasma = 13;
-        fantasma = new Fantasma(columnaFantasma * TILE_SIZE, filaFantasma * TILE_SIZE);
+        // Fantasma 1
+        fantasma1 = new Fantasma(13 * TILE_SIZE, 11 * TILE_SIZE);
+
+        // Fantasma 2
+        fantasma2 = new Fantasma(14 * TILE_SIZE, 13 * TILE_SIZE);
+
+        // Fantasma 3
+        fantasma3 = new Fantasma(12 * TILE_SIZE, 13 * TILE_SIZE);
+
+        // Fantasma 4
+        fantasma4 = new Fantasma(15 * TILE_SIZE, 13 * TILE_SIZE);
 
         juegoTerminado = false;
 
@@ -60,13 +69,21 @@ public class Tablero extends JPanel {
             }
         });
 
-        // Game loop: se ejecuta cada 50ms (20 veces por segundo)
         timer = new Timer(50, e -> {
+
             if (!juegoTerminado) {
+
                 actualizarMovimiento();
-                actualizarFantasma();
+
+                // Actualizamos los cuatro fantasmas.
+                actualizarFantasma(fantasma1);
+                actualizarFantasma(fantasma2);
+                actualizarFantasma(fantasma3);
+                actualizarFantasma(fantasma4);
+
                 verificarColisionConFantasma();
             }
+
             repaint();
         });
         timer.start();
@@ -190,63 +207,114 @@ public class Tablero extends JPanel {
         }
     }
 
-    // Logica central del movimiento del fantasma: misma idea de "centrado
-    // en la celda" que usa Pacman, pero la direccion la decide la IA.
-    private void actualizarFantasma() {
-        boolean centrado = (fantasma.getX() % TILE_SIZE == 0) && (fantasma.getY() % TILE_SIZE == 0);
+    // Actualiza el movimiento de UN fantasma.
+// Recibimos como parámetro cuál de los fantasmas queremos mover.
+private void actualizarFantasma(Fantasma fantasma) {
 
-        if (centrado) {
-            int fila = fantasma.getY() / TILE_SIZE;
-            int columna = fantasma.getX() / TILE_SIZE;
-            fantasma.setDireccionActual(elegirDireccionFantasma(fila, columna));
-        }
+    // Comprobamos si el fantasma está exactamente centrado en una celda.
+    boolean centrado = (fantasma.getX() % TILE_SIZE == 0)
+            && (fantasma.getY() % TILE_SIZE == 0);
 
-        moverFantasmaSegunDireccion();
-        aplicarTunelFantasma();
+    // Si está centrado, es momento de decidir hacia dónde va.
+    if (centrado) {
+
+        // Convertimos su posición en píxeles a fila y columna del mapa.
+        int fila = fantasma.getY() / TILE_SIZE;
+        int columna = fantasma.getX() / TILE_SIZE;
+
+        // La IA decide la mejor dirección para ESTE fantasma.
+        fantasma.setDireccionActual(
+                elegirDireccionFantasma(fila, columna, fantasma)
+        );
     }
 
-    // IA de persecucion: de las direcciones libres, evita revertir el
-    // camino (salvo que sea la unica opcion) y elige la que mas acerca
-    // al fantasma a la celda actual de Pacman.
-    private String elegirDireccionFantasma(int fila, int columna) {
-        String[] direcciones = {"arriba", "abajo", "izquierda", "derecha"};
-        String opuesta = direccionOpuesta(fantasma.getDireccionActual());
+    // Movemos el fantasma en la dirección que decidió la IA.
+    moverFantasmaSegunDireccion(fantasma);
 
-        int filaPacman = pacman.getY() / TILE_SIZE;
-        int columnaPacman = pacman.getX() / TILE_SIZE;
+    // Aplicamos el túnel a ESTE fantasma.
+    aplicarTunelFantasma(fantasma);
+}
 
-        String mejorDireccion = null;
-        int mejorDistancia = Integer.MAX_VALUE;
+    // Decide hacia dónde debe ir UN fantasma para acercarse a Pac-Man.
+private String elegirDireccionFantasma(
+        int fila,
+        int columna,
+        Fantasma fantasma) {
+
+    // Posibles direcciones.
+    String[] direcciones = {
+        "arriba",
+        "abajo",
+        "izquierda",
+        "derecha"
+    };
+
+    // Calculamos cuál sería la dirección contraria a la actual.
+    // Esto evita que el fantasma esté dando vueltas hacia atrás
+    // constantemente.
+    String opuesta = direccionOpuesta(
+            fantasma.getDireccionActual()
+    );
+
+    // Obtenemos la posición actual de Pac-Man.
+    int filaPacman = pacman.getY() / TILE_SIZE;
+    int columnaPacman = pacman.getX() / TILE_SIZE;
+
+    String mejorDireccion = null;
+    int mejorDistancia = Integer.MAX_VALUE;
+
+    // Probamos las cuatro direcciones posibles.
+    for (String direccion : direcciones) {
+
+        // Evitamos volver por donde venía el fantasma,
+        // salvo que sea la única opción.
+        if (direccion.equals(opuesta)) {
+            continue;
+        }
+
+        // Si hay una pared, descartamos esa dirección.
+        if (!puedeAvanzar(fila, columna, direccion)) {
+            continue;
+        }
+
+        // Calculamos la celda a la que llegaría.
+        int[] destino = calcularDestino(
+                fila,
+                columna,
+                direccion
+        );
+
+        // Calculamos qué tan cerca queda de Pac-Man.
+        int distancia = distanciaAlCuadrado(
+                destino[0],
+                destino[1],
+                filaPacman,
+                columnaPacman
+        );
+
+        // Si esta dirección acerca más al fantasma,
+        // la guardamos como la mejor.
+        if (distancia < mejorDistancia) {
+            mejorDistancia = distancia;
+            mejorDireccion = direccion;
+        }
+    }
+
+    // Si quedó encerrado y la única posibilidad es volver atrás,
+    // permitimos la dirección contraria.
+    if (mejorDireccion == null) {
 
         for (String direccion : direcciones) {
-            if (direccion.equals(opuesta)) {
-                continue;
-            }
-            if (!puedeAvanzar(fila, columna, direccion)) {
-                continue;
-            }
 
-            int[] destino = calcularDestino(fila, columna, direccion);
-            int distancia = distanciaAlCuadrado(destino[0], destino[1], filaPacman, columnaPacman);
-
-            if (distancia < mejorDistancia) {
-                mejorDistancia = distancia;
+            if (puedeAvanzar(fila, columna, direccion)) {
                 mejorDireccion = direccion;
+                break;
             }
         }
-
-        // Callejon sin salida: la unica opcion era revertir, se permite.
-        if (mejorDireccion == null) {
-            for (String direccion : direcciones) {
-                if (puedeAvanzar(fila, columna, direccion)) {
-                    mejorDireccion = direccion;
-                    break;
-                }
-            }
-        }
-
-        return mejorDireccion;
     }
+
+    return mejorDireccion;
+}
 
     private int[] calcularDestino(int fila, int columna, String direccion) {
         int filaDestino = fila;
@@ -293,58 +361,113 @@ public class Tablero extends JPanel {
         return null;
     }
 
-    private void moverFantasmaSegunDireccion() {
-        String dir = fantasma.getDireccionActual();
-        if (dir == null) {
-            return;
-        }
+    // Mueve al fantasma recibido según su dirección actual.
+private void moverFantasmaSegunDireccion(Fantasma fantasma) {
 
-        switch (dir) {
-            case "derecha":
-                fantasma.moverDerecha();
-                break;
-            case "izquierda":
-                fantasma.moverIzquierda();
-                break;
-            case "arriba":
-                fantasma.moverArriba();
-                break;
-            case "abajo":
-                fantasma.moverAbajo();
-                break;
-        }
+    // Obtenemos la dirección que decidió la IA.
+    String dir = fantasma.getDireccionActual();
+
+    // Si todavía no tiene dirección, no hacemos nada.
+    if (dir == null) {
+        return;
     }
 
-    // Mismo wraparound del tunel, aplicado al fantasma
-    private void aplicarTunelFantasma() {
-        if (fantasma.getY() != FILA_TUNEL * TILE_SIZE) {
-            return;
-        }
+    switch (dir) {
 
-        int limiteDerecho = (COLUMNAS - 1) * TILE_SIZE;
+        case "derecha":
+            fantasma.moverDerecha();
+            break;
 
-        if (fantasma.getX() < 0) {
-            fantasma.setX(limiteDerecho);
-        } else if (fantasma.getX() > limiteDerecho) {
-            fantasma.setX(0);
-        }
+        case "izquierda":
+            fantasma.moverIzquierda();
+            break;
+
+        case "arriba":
+            fantasma.moverArriba();
+            break;
+
+        case "abajo":
+            fantasma.moverAbajo();
+            break;
     }
+}
+
+    // Permite que el fantasma atraviese el túnel
+// y aparezca del otro lado del mapa.
+private void aplicarTunelFantasma(Fantasma fantasma) {
+
+    // El túnel solamente existe en esta fila.
+    if (fantasma.getY() != FILA_TUNEL * TILE_SIZE) {
+        return;
+    }
+
+    int limiteDerecho = (COLUMNAS - 1) * TILE_SIZE;
+
+    // Si salió por la izquierda, aparece a la derecha.
+    if (fantasma.getX() < 0) {
+        fantasma.setX(limiteDerecho);
+
+    // Si salió por la derecha, aparece a la izquierda.
+    } else if (fantasma.getX() > limiteDerecho) {
+        fantasma.setX(0);
+    }
+}
 
     // Colision por superposicion de rectangulos (mas confiable que comparar
     // celdas exactas, porque detecta el choque aunque no esten perfectamente
     // alineados al centro de la celda en el mismo instante).
+    // Comprueba si Pac-Man chocó con alguno de los cuatro fantasmas.
     private void verificarColisionConFantasma() {
-        boolean colisionan =
-            pacman.getX() < fantasma.getX() + Fantasma.TAMANO &&
-            pacman.getX() + PacmanJugador.TAMANO > fantasma.getX() &&
-            pacman.getY() < fantasma.getY() + Fantasma.TAMANO &&
-            pacman.getY() + PacmanJugador.TAMANO > fantasma.getY();
 
-        if (colisionan) {
-            juegoTerminado = true;
-            timer.stop();
-            System.out.println("Pacman fue atrapado. Game Over.");
+        // Comprobamos la colisión con el fantasma 1.
+        if (hayColision(pacman, fantasma1)) {
+            terminarPorGameOver();
+            return;
         }
+
+        // Comprobamos la colisión con el fantasma 2.
+        if (hayColision(pacman, fantasma2)) {
+            terminarPorGameOver();
+            return;
+        }
+
+        // Comprobamos la colisión con el fantasma 3.
+        if (hayColision(pacman, fantasma3)) {
+            terminarPorGameOver();
+            return;
+        }
+
+        // Comprobamos la colisión con el fantasma 4.
+        if (hayColision(pacman, fantasma4)) {
+            terminarPorGameOver();
+        }
+    }
+    
+    // Comprueba si Pac-Man y un fantasma están chocando.
+    private boolean hayColision(PacmanJugador pacman, Fantasma fantasma) {
+
+        // Comparamos los rectángulos que ocupan Pac-Man y el fantasma.
+        return pacman.getX() < fantasma.getX() + Fantasma.TAMANO
+                && pacman.getX() + PacmanJugador.TAMANO > fantasma.getX()
+                && pacman.getY() < fantasma.getY() + Fantasma.TAMANO
+                && pacman.getY() + PacmanJugador.TAMANO > fantasma.getY();
+    }
+    
+    // Termina el juego cuando Pac-Man es atrapado por un fantasma.
+    private void terminarPorGameOver() {
+
+        // Indicamos que el juego terminó.
+        juegoTerminado = true;
+
+        // Indicamos que el jugador perdió.
+        perdio = true;
+
+        // Detenemos el Timer para que Pac-Man y los fantasmas dejen de moverse.
+        timer.stop();
+
+        // Por ahora mostramos el mensaje en la consola.
+        // Más adelante vamos a crear la pantalla GAME OVER.
+        System.out.println("Pacman fue atrapado. Game Over.");
     }
 
     public boolean esPared(int fila, int columna) {
@@ -458,8 +581,51 @@ public class Tablero extends JPanel {
         g.fillOval(pacman.getX() + 1, pacman.getY() + 1, PacmanJugador.TAMANO, PacmanJugador.TAMANO);
     }
 
+    // Dibuja los cuatro fantasmas en el tablero.
     private void dibujarFantasma(Graphics g) {
+
+        // -----------------------------------------
+        // FANTASMA 1
+        // -----------------------------------------
         g.setColor(Color.RED);
-        g.fillOval(fantasma.getX() + 1, fantasma.getY() + 1, Fantasma.TAMANO, Fantasma.TAMANO);
+        g.fillOval(
+                fantasma1.getX() + 1,
+                fantasma1.getY() + 1,
+                Fantasma.TAMANO,
+                Fantasma.TAMANO
+        );
+
+        // -----------------------------------------
+        // FANTASMA 2
+        // -----------------------------------------
+        g.setColor(Color.PINK);
+        g.fillOval(
+                fantasma2.getX() + 1,
+                fantasma2.getY() + 1,
+                Fantasma.TAMANO,
+                Fantasma.TAMANO
+        );
+
+        // -----------------------------------------
+        // FANTASMA 3
+        // -----------------------------------------
+        g.setColor(Color.CYAN);
+        g.fillOval(
+                fantasma3.getX() + 1,
+                fantasma3.getY() + 1,
+                Fantasma.TAMANO,
+                Fantasma.TAMANO
+        );
+
+        // -----------------------------------------
+        // FANTASMA 4
+        // -----------------------------------------
+        g.setColor(Color.ORANGE);
+        g.fillOval(
+                fantasma4.getX() + 1,
+                fantasma4.getY() + 1,
+                Fantasma.TAMANO,
+                Fantasma.TAMANO
+        );
     }
 }
