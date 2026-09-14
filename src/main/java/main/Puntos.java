@@ -74,6 +74,41 @@ public class Puntos {
         return false;
     }
 
+    // Este método recibe la FILA y la COLUMNA donde se encuentra Pac-Man.
+    // Se usa para comer un Power Pellet (la bolita grande).
+    // Devuelve:
+    // true  -> si encontró y comió un Power Pellet.
+    // false -> si no había uno.
+    public static boolean comerPowerPellet(int fila, int columna) {
+
+        // Comprobamos que la posición esté dentro de los límites de la matriz.
+        if (fila < 0 || fila >= mapa.MATRIZ.length ||
+            columna < 0 || columna >= mapa.MATRIZ[0].length) {
+
+            return false;
+        }
+
+        // El número 3 representa un Power Pellet.
+        if (mapa.MATRIZ[fila][columna] == 3) {
+
+            // Lo borramos del mapa, igual que hacemos con los puntos normales.
+            mapa.MATRIZ[fila][columna] = 0;
+
+            // Un Power Pellet vale más puntos que uno normal.
+            puntaje += 50;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // Permite sumar puntos "sueltos", como los que se ganan al comerse
+    // a un fantasma asustado.
+    public static void sumarPuntos(int cantidad) {
+        puntaje += cantidad;
+    }
+
     // Este método permite que otras clases puedan consultar cuánto puntaje tiene actualmente Pac-Man. 
     public static int getPuntaje() {
         return puntaje;

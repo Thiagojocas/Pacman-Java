@@ -15,6 +15,18 @@ public class Tablero extends JPanel {
     public static final int FILAS = 31;
     public static final int FILA_TUNEL = 14; // fila con abertura en columna 0 y 27
 
+    // Celda dentro de la casa de los fantasmas a la que vuelven cuando
+    // Pac-Man se los come (ahí "revive" y vuelve a salir).
+    private static final int CASA_FILA = 14;
+    private static final int CASA_COLUMNA = 13;
+
+    // Cuánto dura el efecto de un Power Pellet (en milisegundos).
+    private static final int DURACION_ASUSTADO_MS = 7000;
+
+    // Cuánto tiene que esperar un fantasma adentro de la casa, despues
+    // de que Pac-Man se lo comió, antes de poder volver a salir.
+    private static final int TIEMPO_REAPARICION_MS = 20000;
+
     private PacmanJugador pacman;
     private Fantasma fantasma1;
     private Fantasma fantasma2;
@@ -24,7 +36,16 @@ public class Tablero extends JPanel {
     private boolean juegoTerminado; // Indica si el juego ya terminó.
     private boolean gano; // Indica si el jugador ganó. true = ganó | false = todavía no ganó.
     private boolean perdio; // Indica si el jugador choco con algun fantasma. true = perdio | false = no perdio.
+    private int vidas = 3; // Cantidad de vidas que tiene Pac-Man. El juego comienza con 3 vidas.
 
+    // Momento (System.currentTimeMillis()) en el que termina el modo
+    // asustado. 0 significa que el modo asustado no está activo.
+    private long finAsustadoEnMillis = 0;
+
+    // Cuántos fantasmas seguidos se comió Pac-Man con el Power Pellet
+    // actual. Sirve para el puntaje en cadena: 200, 400, 800, 1600.
+    private int fantasmasComidosSeguidos = 0;
+    
     public Tablero() {
         setPreferredSize(new Dimension(COLUMNAS * TILE_SIZE, FILAS * TILE_SIZE));
         setBackground(Color.BLACK);
@@ -35,17 +56,21 @@ public class Tablero extends JPanel {
         int columnaInicial = 1;
         pacman = new PacmanJugador(columnaInicial * TILE_SIZE, filaInicial * TILE_SIZE);
 
+        // Punto de la casa al que vuelven los fantasmas cuando los comen.
+        int xCasa = CASA_COLUMNA * TILE_SIZE;
+        int yCasa = CASA_FILA * TILE_SIZE;
+
         // Fantasma 1
-        fantasma1 = new Fantasma(13 * TILE_SIZE, 11 * TILE_SIZE);
+        fantasma1 = new Fantasma(13 * TILE_SIZE, 11 * TILE_SIZE, xCasa, yCasa);
 
         // Fantasma 2
-        fantasma2 = new Fantasma(14 * TILE_SIZE, 13 * TILE_SIZE);
+        fantasma2 = new Fantasma(14 * TILE_SIZE, 13 * TILE_SIZE, xCasa, yCasa);
 
         // Fantasma 3
-        fantasma3 = new Fantasma(12 * TILE_SIZE, 13 * TILE_SIZE);
+        fantasma3 = new Fantasma(12 * TILE_SIZE, 13 * TILE_SIZE, xCasa, yCasa);
 
         // Fantasma 4
-        fantasma4 = new Fantasma(15 * TILE_SIZE, 13 * TILE_SIZE);
+        fantasma4 = new Fantasma(15 * TILE_SIZE, 13 * TILE_SIZE, xCasa, yCasa);
 
         juegoTerminado = false;
 
@@ -99,7 +124,13 @@ public class Tablero extends JPanel {
             
             // Pacman come el punto de la celda actual
             Puntos.comerPunto(fila, columna);
-            
+
+            // Si en esta celda había un Power Pellet, activamos el modo
+            // asustado: los fantasmas se ponen azules y huyen.
+            if (Puntos.comerPowerPellet(fila, columna)) {
+                activarModoAsustado();
+            }
+
             // Pac-Man acaba de comer el punto de esta celda.
 
             // Comprobamos si ya no queda ningún punto en el mapa.
@@ -122,13 +153,13 @@ public class Tablero extends JPanel {
 
             // Si el jugador pidio girar y ese camino esta libre, se adopta ahora.
             // Esto es lo que permite doblar justo en las esquinas, no antes ni despues.
-            if (puedeAvanzar(fila, columna, pacman.getDireccionDeseada())) {
+            if (puedeAvanzar(fila, columna, pacman.getDireccionDeseada(), null)) {
                 pacman.setDireccionActual(pacman.getDireccionDeseada());
             }
 
             // Si la direccion actual choca con pared, Pacman se frena
             // exactamente centrado en la celda (nunca queda a mitad de camino).
-            if (!puedeAvanzar(fila, columna, pacman.getDireccionActual())) {
+            if (!puedeAvanzar(fila, columna, pacman.getDireccionActual(), null)) {
                 return;
             }
         }
@@ -137,8 +168,11 @@ public class Tablero extends JPanel {
         aplicarTunel();
     }
 
-    // Revisa si desde (fila, columna) se puede avanzar un paso en esa direccion
-    private boolean puedeAvanzar(int fila, int columna, String direccion) {
+    // Revisa si desde (fila, columna) se puede avanzar un paso en esa direccion.
+    // El parametro "fantasma" indica QUIEN se quiere mover: si es Pac-Man,
+    // se pasa null. Se usa para saber si puede entrar a la casa de los
+    // fantasmas (solo los ojos de un fantasma "comido" pueden hacerlo).
+    private boolean puedeAvanzar(int fila, int columna, String direccion, Fantasma fantasma) {
         if (direccion == null) {
             return false;
         }
@@ -167,7 +201,37 @@ public class Tablero extends JPanel {
             return true;
         }
 
-        return !esPared(filaDestino, columnaDestino);
+        if (esPared(filaDestino, columnaDestino)) {
+            return false;
+        }
+
+        // Solo dejamos ENTRAR a la casa de los fantasmas (desde afuera)
+        // a un fantasma que está en estado "comido" (volviendo como ojos).
+        // Si ya está adentro, puede moverse libremente para salir.
+        boolean entrandoACasa = esCasaFantasmas(filaDestino, columnaDestino)
+                && !esCasaFantasmas(fila, columna);
+
+        if (entrandoACasa) {
+            boolean puedeEntrar = fantasma != null && Fantasma.COMIDO.equals(fantasma.getEstado());
+            if (!puedeEntrar) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Indica si la celda (fila, columna) forma parte de la casa de los
+    // fantasmas (su interior o la puerta de entrada).
+    private boolean esCasaFantasmas(int fila, int columna) {
+        if (fila < 12 || fila > 15 || columna < 11 || columna > 16) {
+            return false;
+        }
+
+        int tile = mapa.MATRIZ[fila][columna];
+
+        // 4 = puerta de la casa, 0 = piso interior de la casa.
+        return tile == 0 || tile == 4;
     }
 
     // Si Pacman cruzo el borde del mapa por el tunel, lo reaparece del otro lado
@@ -215,17 +279,16 @@ private void actualizarFantasma(Fantasma fantasma) {
     boolean centrado = (fantasma.getX() % TILE_SIZE == 0)
             && (fantasma.getY() % TILE_SIZE == 0);
 
-    // Si está centrado, es momento de decidir hacia dónde va.
+    // Los cambios de estado (y sobre todo de VELOCIDAD) de un fantasma
+    // solo se procesan cuando está centrado. Si se cambiara la velocidad
+    // a mitad de camino entre dos celdas, la posición del fantasma
+    // dejaría de coincidir con los múltiplos de TILE_SIZE para siempre
+    // (según la matemática de módulo), "centrado" nunca volvería a dar
+    // true, y el fantasma quedaría moviéndose en línea recta sin que
+    // nadie vuelva a revisarle paredes: se iba derecho para afuera del
+    // mapa. Por eso TODO lo que decide velocidad vive acá adentro.
     if (centrado) {
-
-        // Convertimos su posición en píxeles a fila y columna del mapa.
-        int fila = fantasma.getY() / TILE_SIZE;
-        int columna = fantasma.getX() / TILE_SIZE;
-
-        // La IA decide la mejor dirección para ESTE fantasma.
-        fantasma.setDireccionActual(
-                elegirDireccionFantasma(fila, columna, fantasma)
-        );
+        actualizarEstadoFantasma(fantasma);
     }
 
     // Movemos el fantasma en la dirección que decidió la IA.
@@ -233,6 +296,56 @@ private void actualizarFantasma(Fantasma fantasma) {
 
     // Aplicamos el túnel a ESTE fantasma.
     aplicarTunelFantasma(fantasma);
+}
+
+// Decide en qué estado queda el fantasma y hacia dónde se mueve
+// despues. Se llama UNICAMENTE cuando el fantasma está centrado.
+private void actualizarEstadoFantasma(Fantasma fantasma) {
+
+    // Si el modo asustado ya terminó, este fantasma deja de estar asustado.
+    if (Fantasma.ASUSTADO.equals(fantasma.getEstado()) && yaTerminoElAsustado()) {
+        fantasma.setEstado(Fantasma.NORMAL);
+    }
+
+    int fila = fantasma.getY() / TILE_SIZE;
+    int columna = fantasma.getX() / TILE_SIZE;
+
+    // Si el fantasma son solo ojos volviendo a la casa y ya llegó...
+    if (Fantasma.COMIDO.equals(fantasma.getEstado())
+            && fantasma.getX() == fantasma.getXCasa()
+            && fantasma.getY() == fantasma.getYCasa()) {
+
+        if (System.currentTimeMillis() >= fantasma.getRevivirEnMillis()) {
+            // Ya pasó el tiempo de reaparición: revive.
+            fantasma.setEstado(Fantasma.NORMAL);
+        } else {
+            // Todavía tiene que esperar adentro de la casa.
+            fantasma.setDireccionActual(null);
+            return;
+        }
+    }
+
+    // Ajustamos la velocidad según el estado ACTUAL. Esto pasa siempre
+    // acá, en un punto alineado a la grilla (ver el comentario de arriba).
+    switch (fantasma.getEstado()) {
+        case Fantasma.ASUSTADO:
+            fantasma.setVelocidad(1); // mas lento mientras esta asustado
+            break;
+        case Fantasma.COMIDO:
+            fantasma.setVelocidad(7); // los ojos vuelven rapido a la casa
+            break;
+        default:
+            fantasma.setVelocidad(3);
+            break;
+    }
+
+    // La IA decide la mejor dirección para ESTE fantasma.
+    fantasma.setDireccionActual(elegirDireccionFantasma(fila, columna, fantasma));
+}
+
+// Indica si ya se cumplió el tiempo de efecto del último Power Pellet.
+private boolean yaTerminoElAsustado() {
+    return finAsustadoEnMillis != 0 && System.currentTimeMillis() >= finAsustadoEnMillis;
 }
 
     // Decide hacia dónde debe ir UN fantasma para acercarse a Pac-Man.
@@ -256,12 +369,27 @@ private String elegirDireccionFantasma(
             fantasma.getDireccionActual()
     );
 
-    // Obtenemos la posición actual de Pac-Man.
-    int filaPacman = pacman.getY() / TILE_SIZE;
-    int columnaPacman = pacman.getX() / TILE_SIZE;
+    // Si está "comido" (son solo ojos), el objetivo ya no es Pac-Man
+    // sino el punto de la casa. Si está "asustado", en vez de acercarse
+    // al objetivo va a alejarse de él (huir).
+    boolean comido = Fantasma.COMIDO.equals(fantasma.getEstado());
+    boolean huyendo = Fantasma.ASUSTADO.equals(fantasma.getEstado());
+
+    int filaObjetivo;
+    int columnaObjetivo;
+
+    if (comido) {
+        filaObjetivo = fantasma.getYCasa() / TILE_SIZE;
+        columnaObjetivo = fantasma.getXCasa() / TILE_SIZE;
+    } else {
+        // Perseguir (normal) o huir (asustado) toman como referencia
+        // la posición actual de Pac-Man.
+        filaObjetivo = pacman.getY() / TILE_SIZE;
+        columnaObjetivo = pacman.getX() / TILE_SIZE;
+    }
 
     String mejorDireccion = null;
-    int mejorDistancia = Integer.MAX_VALUE;
+    int mejorDistancia = huyendo ? Integer.MIN_VALUE : Integer.MAX_VALUE;
 
     // Probamos las cuatro direcciones posibles.
     for (String direccion : direcciones) {
@@ -272,8 +400,9 @@ private String elegirDireccionFantasma(
             continue;
         }
 
-        // Si hay una pared, descartamos esa dirección.
-        if (!puedeAvanzar(fila, columna, direccion)) {
+        // Si hay una pared (o es una entrada a la casa que este
+        // fantasma no puede usar), descartamos esa dirección.
+        if (!puedeAvanzar(fila, columna, direccion, fantasma)) {
             continue;
         }
 
@@ -284,17 +413,19 @@ private String elegirDireccionFantasma(
                 direccion
         );
 
-        // Calculamos qué tan cerca queda de Pac-Man.
+        // Calculamos qué tan cerca (o lejos) queda del objetivo.
         int distancia = distanciaAlCuadrado(
                 destino[0],
                 destino[1],
-                filaPacman,
-                columnaPacman
+                filaObjetivo,
+                columnaObjetivo
         );
 
-        // Si esta dirección acerca más al fantasma,
-        // la guardamos como la mejor.
-        if (distancia < mejorDistancia) {
+        // Si está huyendo, nos interesa la dirección que lo aleja más;
+        // si no, la que lo acerca más.
+        boolean esMejor = huyendo ? (distancia > mejorDistancia) : (distancia < mejorDistancia);
+
+        if (esMejor) {
             mejorDistancia = distancia;
             mejorDireccion = direccion;
         }
@@ -306,7 +437,7 @@ private String elegirDireccionFantasma(
 
         for (String direccion : direcciones) {
 
-            if (puedeAvanzar(fila, columna, direccion)) {
+            if (puedeAvanzar(fila, columna, direccion, fantasma)) {
                 mejorDireccion = direccion;
                 break;
             }
@@ -315,6 +446,33 @@ private String elegirDireccionFantasma(
 
     return mejorDireccion;
 }
+
+    // Se llama cuando Pac-Man come un Power Pellet: todos los fantasmas
+    // que no estén "comidos" (ojos volviendo a casa) se ponen azules y
+    // huyen, y arrancamos (o reiniciamos) la cuenta regresiva.
+    private void activarModoAsustado() {
+        finAsustadoEnMillis = System.currentTimeMillis() + DURACION_ASUSTADO_MS;
+        fantasmasComidosSeguidos = 0;
+
+        ponerAsustado(fantasma1);
+        ponerAsustado(fantasma2);
+        ponerAsustado(fantasma3);
+        ponerAsustado(fantasma4);
+    }
+
+    private void ponerAsustado(Fantasma fantasma) {
+        // Un fantasma que ya está volviendo como ojos no se ve afectado
+        // por un nuevo Power Pellet.
+        if (Fantasma.COMIDO.equals(fantasma.getEstado())) {
+            return;
+        }
+
+        // Ojo: acá SOLO cambiamos el estado (para que se vea azul y la
+        // IA empiece a huir apenas se pueda). La velocidad NO se toca
+        // acá: se ajusta sola la próxima vez que el fantasma esté
+        // centrado, dentro de actualizarEstadoFantasma().
+        fantasma.setEstado(Fantasma.ASUSTADO);
+    }
 
     private int[] calcularDestino(int fila, int columna, String direccion) {
         int filaDestino = fila;
@@ -416,33 +574,41 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
     // Colision por superposicion de rectangulos (mas confiable que comparar
     // celdas exactas, porque detecta el choque aunque no esten perfectamente
     // alineados al centro de la celda en el mismo instante).
-    // Comprueba si Pac-Man chocó con alguno de los cuatro fantasmas.
+    // Comprueba si Pac-Man chocó con alguno de los cuatro fantasmas y
+    // reacciona segun el estado de cada uno.
     private void verificarColisionConFantasma() {
 
-        // Comprobamos la colisión con el fantasma 1.
-        if (hayColision(pacman, fantasma1)) {
-            terminarPorGameOver();
-            return;
-        }
-
-        // Comprobamos la colisión con el fantasma 2.
-        if (hayColision(pacman, fantasma2)) {
-            terminarPorGameOver();
-            return;
-        }
-
-        // Comprobamos la colisión con el fantasma 3.
-        if (hayColision(pacman, fantasma3)) {
-            terminarPorGameOver();
-            return;
-        }
-
-        // Comprobamos la colisión con el fantasma 4.
-        if (hayColision(pacman, fantasma4)) {
-            terminarPorGameOver();
-        }
+        if (procesarColision(fantasma1)) return;
+        if (procesarColision(fantasma2)) return;
+        if (procesarColision(fantasma3)) return;
+        procesarColision(fantasma4);
     }
-    
+
+    // Comprueba la colision de Pac-Man con UN fantasma y actua segun su
+    // estado. Devuelve true si Pac-Man perdió una vida (para no seguir
+    // revisando a los demás fantasmas en el mismo instante).
+    private boolean procesarColision(Fantasma fantasma) {
+
+        if (!hayColision(pacman, fantasma)) {
+            return false;
+        }
+
+        // Los ojos que vuelven a la casa no le hacen nada a Pac-Man.
+        if (Fantasma.COMIDO.equals(fantasma.getEstado())) {
+            return false;
+        }
+
+        // Si el fantasma estaba asustado, Pac-Man se lo come.
+        if (Fantasma.ASUSTADO.equals(fantasma.getEstado())) {
+            comerFantasma(fantasma);
+            return false;
+        }
+
+        // Si el fantasma estaba en su estado normal, Pac-Man pierde una vida.
+        perderVida();
+        return true;
+    }
+
     // Comprueba si Pac-Man y un fantasma están chocando.
     private boolean hayColision(PacmanJugador pacman, Fantasma fantasma) {
 
@@ -452,8 +618,67 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
                 && pacman.getY() < fantasma.getY() + Fantasma.TAMANO
                 && pacman.getY() + PacmanJugador.TAMANO > fantasma.getY();
     }
-    
-    // Termina el juego cuando Pac-Man es atrapado por un fantasma.
+
+    // Pac-Man se come a un fantasma asustado: suma puntos (que se van
+    // duplicando si come varios seguidos, como en el juego original) y
+    // lo convierte en un par de ojos que vuelven a la casa. Una vez ahí,
+    // espera TIEMPO_REAPARICION_MS antes de poder volver a salir.
+    private void comerFantasma(Fantasma fantasma) {
+        fantasmasComidosSeguidos++;
+
+        int puntos = 200 * (int) Math.pow(2, fantasmasComidosSeguidos - 1);
+        if (puntos > 1600) {
+            puntos = 1600;
+        }
+        Puntos.sumarPuntos(puntos);
+
+        fantasma.setEstado(Fantasma.COMIDO);
+        fantasma.setRevivirEnMillis(System.currentTimeMillis() + TIEMPO_REAPARICION_MS);
+        // La velocidad NO se cambia acá: se ajusta sola la próxima vez
+        // que el fantasma esté centrado, dentro de actualizarEstadoFantasma().
+    }
+
+    // Le hace perder una vida a Pac-Man. Si ya no le quedan vidas,
+    // termina el juego; si le quedan, reinicia las posiciones para
+    // seguir jugando (sin tocar el puntaje ni los puntos ya comidos).
+    private void perderVida() {
+        vidas--;
+
+        if (vidas <= 0) {
+            terminarPorGameOver();
+            return;
+        }
+
+        reiniciarPosiciones();
+    }
+
+    // Vuelve a Pac-Man y a los fantasmas a sus posiciones y estado
+    // iniciales despues de perder una vida.
+    private void reiniciarPosiciones() {
+        pacman.setX(1 * TILE_SIZE);
+        pacman.setY(1 * TILE_SIZE);
+        pacman.setDireccionActual(null);
+        pacman.setDireccionDeseada(null);
+
+        reiniciarFantasma(fantasma1, 13 * TILE_SIZE, 11 * TILE_SIZE);
+        reiniciarFantasma(fantasma2, 14 * TILE_SIZE, 13 * TILE_SIZE);
+        reiniciarFantasma(fantasma3, 12 * TILE_SIZE, 13 * TILE_SIZE);
+        reiniciarFantasma(fantasma4, 15 * TILE_SIZE, 13 * TILE_SIZE);
+
+        finAsustadoEnMillis = 0;
+        fantasmasComidosSeguidos = 0;
+    }
+
+    private void reiniciarFantasma(Fantasma fantasma, int x, int y) {
+        fantasma.setX(x);
+        fantasma.setY(y);
+        fantasma.setDireccionActual(null);
+        fantasma.setEstado(Fantasma.NORMAL);
+        fantasma.setVelocidad(3);
+        fantasma.setRevivirEnMillis(0);
+    }
+
+    // Termina el juego cuando Pac-Man se queda sin vidas.
     private void terminarPorGameOver() {
 
         // Indicamos que el juego terminó.
@@ -542,6 +767,7 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
             g.setColor(Color.WHITE);
             g.setFont(g.getFont().deriveFont(18f));
             g.drawString("Puntaje: " + Puntos.getPuntaje(), 10, 20);
+            g.drawString("Vidas: " + vidas, 10, 40);
     }
 
     private void dibujarMapa(Graphics g) {
@@ -581,49 +807,45 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         g.fillOval(pacman.getX() + 1, pacman.getY() + 1, PacmanJugador.TAMANO, PacmanJugador.TAMANO);
     }
 
-    // Dibuja los cuatro fantasmas en el tablero.
+    // Dibuja los cuatro fantasmas en el tablero, cada uno con su color
+    // propio (salvo que esté asustado o comido).
     private void dibujarFantasma(Graphics g) {
+        dibujarUnFantasma(g, fantasma1, Color.RED);
+        dibujarUnFantasma(g, fantasma2, Color.PINK);
+        dibujarUnFantasma(g, fantasma3, Color.CYAN);
+        dibujarUnFantasma(g, fantasma4, Color.ORANGE);
+    }
 
-        // -----------------------------------------
-        // FANTASMA 1
-        // -----------------------------------------
-        g.setColor(Color.RED);
-        g.fillOval(
-                fantasma1.getX() + 1,
-                fantasma1.getY() + 1,
-                Fantasma.TAMANO,
-                Fantasma.TAMANO
-        );
+    // Dibuja UN fantasma segun su estado actual:
+    // - normal: con su color propio.
+    // - asustado: azul (y parpadea en blanco justo antes de volver a la normalidad).
+    // - comido: solo se ven los "ojos" volviendo a la casa.
+    private void dibujarUnFantasma(Graphics g, Fantasma fantasma, Color colorNormal) {
+        String estado = fantasma.getEstado();
 
-        // -----------------------------------------
-        // FANTASMA 2
-        // -----------------------------------------
-        g.setColor(Color.PINK);
-        g.fillOval(
-                fantasma2.getX() + 1,
-                fantasma2.getY() + 1,
-                Fantasma.TAMANO,
-                Fantasma.TAMANO
-        );
+        if (Fantasma.COMIDO.equals(estado)) {
+            // Son solo un par de ojitos volviendo a la casa.
+            g.setColor(Color.WHITE);
+            g.fillOval(fantasma.getX() + 3, fantasma.getY() + 5, 5, 5);
+            g.fillOval(fantasma.getX() + 10, fantasma.getY() + 5, 5, 5);
+            return;
+        }
 
-        // -----------------------------------------
-        // FANTASMA 3
-        // -----------------------------------------
-        g.setColor(Color.CYAN);
-        g.fillOval(
-                fantasma3.getX() + 1,
-                fantasma3.getY() + 1,
-                Fantasma.TAMANO,
-                Fantasma.TAMANO
-        );
+        if (Fantasma.ASUSTADO.equals(estado)) {
+            // Cuando falta poco para que se termine el efecto, parpadea
+            // entre azul y blanco para avisarle al jugador.
+            long restante = finAsustadoEnMillis - System.currentTimeMillis();
+            boolean porTerminar = restante < 2000;
+            boolean parpadeoBlanco = porTerminar && (System.currentTimeMillis() / 200) % 2 == 0;
 
-        // -----------------------------------------
-        // FANTASMA 4
-        // -----------------------------------------
-        g.setColor(Color.ORANGE);
+            g.setColor(parpadeoBlanco ? Color.WHITE : new Color(33, 33, 222));
+        } else {
+            g.setColor(colorNormal);
+        }
+
         g.fillOval(
-                fantasma4.getX() + 1,
-                fantasma4.getY() + 1,
+                fantasma.getX() + 1,
+                fantasma.getY() + 1,
                 Fantasma.TAMANO,
                 Fantasma.TAMANO
         );
