@@ -710,7 +710,48 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         dibujarFantasma(g);
         dibujarPuntaje(g);
         if (gano){dibujarPantallaWin(g);}
+        if (perdio){dibujarPantallaGameOver(g);}
         }
+
+    // Dibuja la pantalla que aparece cuando Pac-Man pierde todas sus vidas.
+    // Antes no existía: el juego solo detenía el Timer (por eso, al perder
+    // la última vida, la pantalla se quedaba "congelada" sin ningún aviso).
+    private void dibujarPantallaGameOver(Graphics g) {
+
+        // Pintamos todo el tablero de negro.
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, getWidth(), getHeight());
+
+        // Título en rojo.
+        g.setColor(Color.RED);
+        g.setFont(g.getFont().deriveFont(40f));
+
+        String titulo = "GAME OVER";
+
+        int anchoTitulo = g.getFontMetrics().stringWidth(titulo);
+        int xTitulo = (getWidth() - anchoTitulo) / 2;
+        int yTitulo = 230;
+
+        g.drawString(titulo, xTitulo, yTitulo);
+
+        g.setColor(Color.WHITE);
+        g.setFont(g.getFont().deriveFont(22f));
+
+        String textoPuntaje = "Puntaje: " + Puntos.getPuntaje();
+        int anchoPuntaje = g.getFontMetrics().stringWidth(textoPuntaje);
+        int xPuntaje = (getWidth() - anchoPuntaje) / 2;
+
+        g.drawString(textoPuntaje, xPuntaje, 280);
+
+        g.setFont(g.getFont().deriveFont(18f));
+
+        String mensaje = "Te atraparon los fantasmas.";
+        int anchoMensaje = g.getFontMetrics().stringWidth(mensaje);
+        int xMensaje = (getWidth() - anchoMensaje) / 2;
+
+        g.drawString(mensaje, xMensaje, 320);
+    }
+
     // Dibuja la pantalla que aparece cuando Pac-Man gana.
     private void dibujarPantallaWin(Graphics g) {
 
