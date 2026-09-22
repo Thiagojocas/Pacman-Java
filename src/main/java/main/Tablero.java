@@ -9,15 +9,19 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 public class Tablero extends JPanel {
+    
+    
 
     public static final int TILE_SIZE = 21;
-    public static final int COLUMNAS = 28;
-    public static final int FILAS = 31;
-    public static final int FILA_TUNEL = 14; // fila con abertura en columna 0 y 27
+    public static final int COLUMNAS = mapa.COLUMNAS;
+    public static final int FILAS = mapa.FILAS;
+    public static final int FILA_TUNEL = mapa.FILA_TUNEL;
+    
+    
 
     // Celda dentro de la casa de los fantasmas a la que vuelven cuando
     // Pac-Man se los come (ahí "revive" y vuelve a salir).
-    private static final int CASA_FILA = 14;
+    private static final int CASA_FILA = 16;
     private static final int CASA_COLUMNA = 13;
 
     // Cuánto dura el efecto de un Power Pellet (en milisegundos).
@@ -27,6 +31,13 @@ public class Tablero extends JPanel {
     // de que Pac-Man se lo comió, antes de poder volver a salir.
     private static final int TIEMPO_REAPARICION_MS = 20000;
 
+      // NUEVO: Tiempos de salida escalonada (en milisegundos desde el inicio del juego)  
+    private static final long SALIDA_BLINKY_MS = 0;      // Sale inmediato  
+    private static final long SALIDA_PINKY_MS = 3000;    // Sale a los 3 segundos  
+    private static final long SALIDA_INKY_MS = 7000;     // Sale a los 7 segundos  
+    private static final long SALIDA_CLYDE_MS = 12000;   // Sale a los 12 segundos  
+    
+    
     private PacmanJugador pacman;
     private Fantasma fantasma1;
     private Fantasma fantasma2;
@@ -40,6 +51,9 @@ public class Tablero extends JPanel {
 
     // Momento (System.currentTimeMillis()) en el que termina el modo
     // asustado. 0 significa que el modo asustado no está activo.
+     // NUEVO: Guardar el momento en que arrancó el juego  
+    private long inicioJuegoMillis;  
+    
     private long finAsustadoEnMillis = 0;
 
     // Cuántos fantasmas seguidos se comió Pac-Man con el Power Pellet
@@ -60,17 +74,34 @@ public class Tablero extends JPanel {
         int xCasa = CASA_COLUMNA * TILE_SIZE;
         int yCasa = CASA_FILA * TILE_SIZE;
 
-        // Fantasma 1
-        fantasma1 = new Fantasma(13 * TILE_SIZE, 11 * TILE_SIZE, xCasa, yCasa);
+        // CORREGIDO: los fantasmas 2, 3 y 4 arrancaban DENTRO de paredes
+        // (fila 13, columnas 12/14/15 son tile 1). Ahora arrancan dentro
+        // de la casa (fila 16), que es tile 0 (interior transitable).
+        fantasma1 = new Fantasma(13 * TILE_SIZE, 11 * TILE_SIZE, xCasa, yCasa);  
+        fantasma2 = new Fantasma(12 * TILE_SIZE, 16 * TILE_SIZE, xCasa, yCasa);  
+        fantasma3 = new Fantasma(13 * TILE_SIZE, 16 * TILE_SIZE, xCasa, yCasa);  
+        fantasma4 = new Fantasma(14 * TILE_SIZE, 16 * TILE_SIZE, xCasa, yCasa);  
+        
+              // NUEVO: Asignar tipo a cada fantasma y su tiempo de salida  
+        fantasma1.setTipo(Fantasma.TIPO_BLINKY);  
+        fantasma1.setSalirEnMillis(SALIDA_BLINKY_MS);  
+        fantasma1.setEstado(Fantasma.EN_CASA);  
 
-        // Fantasma 2
-        fantasma2 = new Fantasma(14 * TILE_SIZE, 13 * TILE_SIZE, xCasa, yCasa);
+        fantasma2.setTipo(Fantasma.TIPO_PINKY);  
+        fantasma2.setSalirEnMillis(SALIDA_PINKY_MS);  
+        fantasma2.setEstado(Fantasma.EN_CASA);  
 
-        // Fantasma 3
-        fantasma3 = new Fantasma(12 * TILE_SIZE, 13 * TILE_SIZE, xCasa, yCasa);
+        fantasma3.setTipo(Fantasma.TIPO_INKY);  
+        fantasma3.setSalirEnMillis(SALIDA_INKY_MS);  
+        fantasma3.setEstado(Fantasma.EN_CASA);  
 
-        // Fantasma 4
-        fantasma4 = new Fantasma(15 * TILE_SIZE, 13 * TILE_SIZE, xCasa, yCasa);
+        fantasma4.setTipo(Fantasma.TIPO_CLYDE);  
+        fantasma4.setSalirEnMillis(SALIDA_CLYDE_MS);  
+        fantasma4.setEstado(Fantasma.EN_CASA);  
+
+          // NUEVO: Registrar cuándo arrancó el juego  
+        inicioJuegoMillis = System.currentTimeMillis();  
+
 
         juegoTerminado = false;
 
@@ -114,6 +145,8 @@ public class Tablero extends JPanel {
         timer.start();
     }
 
+    
+    
     // Logica central del movimiento por celdas
     private void actualizarMovimiento() {
         boolean centrado = (pacman.getX() % TILE_SIZE == 0) && (pacman.getY() % TILE_SIZE == 0);
@@ -168,6 +201,7 @@ public class Tablero extends JPanel {
         aplicarTunel();
     }
 
+        
     // Revisa si desde (fila, columna) se puede avanzar un paso en esa direccion.
     // El parametro "fantasma" indica QUIEN se quiere mover: si es Pac-Man,
     // se pasa null. Se usa para saber si puede entrar a la casa de los
@@ -223,16 +257,19 @@ public class Tablero extends JPanel {
 
     // Indica si la celda (fila, columna) forma parte de la casa de los
     // fantasmas (su interior o la puerta de entrada).
-    private boolean esCasaFantasmas(int fila, int columna) {
-        if (fila < 12 || fila > 15 || columna < 11 || columna > 16) {
-            return false;
-        }
+   private boolean esCasaFantasmas(int fila, int columna) {
 
-        int tile = mapa.MATRIZ[fila][columna];
-
-        // 4 = puerta de la casa, 0 = piso interior de la casa.
-        return tile == 0 || tile == 4;
+    if (fila < 15 || fila > 17 || columna < 11 || columna > 16) {
+        return false;
     }
+
+    int tile = mapa.MATRIZ[fila][columna];
+
+    // 4 = puerta
+    // 0 = interior de la casa
+
+    return tile == 0 || tile == 4;
+}
 
     // Si Pacman cruzo el borde del mapa por el tunel, lo reaparece del otro lado
     private void aplicarTunel() {
@@ -297,6 +334,7 @@ private void actualizarFantasma(Fantasma fantasma) {
     // Aplicamos el túnel a ESTE fantasma.
     aplicarTunelFantasma(fantasma);
 }
+
 
 // Decide en qué estado queda el fantasma y hacia dónde se mueve
 // despues. Se llama UNICAMENTE cuando el fantasma está centrado.
@@ -660,10 +698,13 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         pacman.setDireccionActual(null);
         pacman.setDireccionDeseada(null);
 
+        // CORREGIDO: mismas posiciones que en el constructor. Los
+        // fantasmas 2, 3 y 4 van dentro de la casa (fila 16), no dentro
+        // de paredes (fila 13).
         reiniciarFantasma(fantasma1, 13 * TILE_SIZE, 11 * TILE_SIZE);
-        reiniciarFantasma(fantasma2, 14 * TILE_SIZE, 13 * TILE_SIZE);
-        reiniciarFantasma(fantasma3, 12 * TILE_SIZE, 13 * TILE_SIZE);
-        reiniciarFantasma(fantasma4, 15 * TILE_SIZE, 13 * TILE_SIZE);
+        reiniciarFantasma(fantasma2, 12 * TILE_SIZE, 16 * TILE_SIZE);
+        reiniciarFantasma(fantasma3, 13 * TILE_SIZE, 16 * TILE_SIZE);
+        reiniciarFantasma(fantasma4, 14 * TILE_SIZE, 16 * TILE_SIZE);
 
         finAsustadoEnMillis = 0;
         fantasmasComidosSeguidos = 0;
@@ -811,37 +852,85 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
             g.drawString("Vidas: " + vidas, 10, 40);
     }
 
-    private void dibujarMapa(Graphics g) {
-        int[][] matriz = mapa.MATRIZ;
+private void dibujarMapa(Graphics g) {
 
-        for (int fila = 0; fila < FILAS; fila++) {
-            for (int col = 0; col < COLUMNAS; col++) {
-                int tile = matriz[fila][col];
-                int x = col * TILE_SIZE;
-                int y = fila * TILE_SIZE;
+    int[][] matriz = mapa.MATRIZ;
 
-                switch (tile) {
-                    case 1: // pared
-                        g.setColor(Color.BLUE);
-                        g.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-                        break;
-                    case 2: // pellet
-                        g.setColor(Color.WHITE);
-                        g.fillOval(x + TILE_SIZE / 2 - 2, y + TILE_SIZE / 2 - 2, 4, 4);
-                        break;
-                    case 3: // power pellet
-                        g.setColor(Color.WHITE);
-                        g.fillOval(x + TILE_SIZE / 2 - 5, y + TILE_SIZE / 2 - 5, 10, 10);
-                        break;
-                    case 4: // puerta casa fantasmas
-                        g.setColor(Color.PINK);
-                        g.fillRect(x, y + TILE_SIZE / 2 - 1, TILE_SIZE, 3);
-                        break;
-                    // case 0: vacio, no se dibuja nada
-                }
+    // Fondo negro
+    g.setColor(Color.BLACK);
+    g.fillRect(0, 0, getWidth(), getHeight());
+
+    for (int fila = 0; fila < FILAS; fila++) {
+
+        for (int col = 0; col < COLUMNAS; col++) {
+
+            int tile = matriz[fila][col];
+
+            int x = col * TILE_SIZE;
+            int y = fila * TILE_SIZE;
+
+            switch (tile) {
+
+                case 1:
+                    // PARED
+                    g.setColor(new Color(0, 180, 255));
+
+                    // Dibujamos solamente el contorno,
+                    // dando un aspecto más parecido al mapa de Pac-Man.
+                    g.drawRoundRect(
+                        x + 2,
+                        y + 2,
+                        TILE_SIZE - 4,
+                        TILE_SIZE - 4,
+                        6,
+                        6
+                    );
+                    break;
+
+                case 2:
+                    // PUNTO NORMAL
+                    g.setColor(Color.WHITE);
+
+                    g.fillOval(
+                        x + TILE_SIZE / 2 - 2,
+                        y + TILE_SIZE / 2 - 2,
+                        4,
+                        4
+                    );
+                    break;
+
+                case 3:
+                    // POWER PELLET
+                    g.setColor(Color.YELLOW);
+
+                    g.fillOval(
+                        x + TILE_SIZE / 2 - 5,
+                        y + TILE_SIZE / 2 - 5,
+                        10,
+                        10
+                    );
+                    break;
+
+                case 4:
+                    // PUERTA DE LA CASA
+                    g.setColor(Color.PINK);
+
+                    g.fillRect(
+                        x + 2,
+                        y + TILE_SIZE / 2 - 2,
+                        TILE_SIZE - 4,
+                        4
+                    );
+                    break;
+
+                case 0:
+                    // Interior de la casa.
+                    // No dibujamos pared.
+                    break;
             }
         }
     }
+}
 
     private void dibujarPacman(Graphics g) {
         g.setColor(Color.YELLOW);

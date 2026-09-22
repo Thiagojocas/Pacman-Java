@@ -4,29 +4,31 @@ public class Fantasma {
 
     public static final int TAMANO = 18;
 
-    // Los tres estados posibles de un fantasma.
-    // NORMAL   -> persigue a Pac-Man, si lo toca Pac-Man pierde una vida.
-    // ASUSTADO -> Pac-Man comió un Power Pellet; el fantasma huye y si
-    //             Pac-Man lo toca, se lo come.
-    // COMIDO   -> son solo los "ojos" volviendo a la casa para revivir.
-    public static final String NORMAL = "normal";
-    public static final String ASUSTADO = "asustado";
-    public static final String COMIDO = "comido";
+    // Estados posibles de un fantasma.
+    public static final String EN_CASA = "en_casa";      // Esperando en la casa antes de salir
+    public static final String NORMAL = "normal";        // Persigue a Pac-Man
+    public static final String ASUSTADO = "asustado";    // Pac-Man comió Power Pellet, huye
+    public static final String COMIDO = "comido";        // Ojos volviendo a la casa
+
+    // Tipos de fantasmas (con sus personalidades distintas)
+    public static final String TIPO_BLINKY = "blinky";   // Rojo: persigue directo
+    public static final String TIPO_PINKY = "pinky";     // Rosa: apunta 4 celdas adelante
+    public static final String TIPO_INKY = "inky";       // Cyan: impredecible, reflejo
+    public static final String TIPO_CLYDE = "clyde";     // Naranja: persigue/scatter
 
     private int x;
     private int y;
     private int velocidad;
     private String direccionActual;
     private String estado;
+    private String tipo;                    // NUEVO: identifica qué fantasma es
+    private long salirEnMillis;            // NUEVO: cuándo le toca salir de la casa
 
-    // Posición (en píxeles) del punto dentro de la casa al que el
-    // fantasma vuelve cuando Pac-Man se lo come.
+    // Posición (en píxeles) del punto dentro de la casa
     private int xCasa;
     private int yCasa;
 
-    // Momento (System.currentTimeMillis()) a partir del cual este
-    // fantasma puede volver a ser "normal" despues de haber sido
-    // comido. Se usa para el tiempo de reaparición.
+    // Momento para volver a ser "normal" después de ser comido
     private long revivirEnMillis;
 
     public Fantasma(int xInicial, int yInicial, int xCasa, int yCasa) {
@@ -34,11 +36,14 @@ public class Fantasma {
         y = yInicial;
         this.xCasa = xCasa;
         this.yCasa = yCasa;
-        velocidad = 3; // mismo valor que Pacman, debe ser divisor de TILE_SIZE
+        velocidad = 3;
         direccionActual = null;
-        estado = NORMAL;
+        estado = EN_CASA;               // MODIFICADO: ahora empieza EN_CASA
+        tipo = TIPO_BLINKY;             // Por defecto Blinky, se cambia con setTipo()
+        salirEnMillis = 0;              // Se asigna en Tablero
     }
 
+    // Getters y Setters existentes
     public int getX() {
         return x;
     }
@@ -59,10 +64,6 @@ public class Fantasma {
         return velocidad;
     }
 
-    // La velocidad cambia según el estado: más lenta si está asustado,
-    // más rápida si son los ojos volviendo a la casa. SIEMPRE debe ser
-    // un divisor de Tablero.TILE_SIZE (1, 3, 7 o 21) para no romper el
-    // sistema de alineación a la grilla.
     public void setVelocidad(int velocidad) {
         this.velocidad = velocidad;
     }
@@ -99,6 +100,24 @@ public class Fantasma {
         this.revivirEnMillis = revivirEnMillis;
     }
 
+    // NUEVOS: Getters y Setters para tipo y salirEnMillis
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public long getSalirEnMillis() {
+        return salirEnMillis;
+    }
+
+    public void setSalirEnMillis(long salirEnMillis) {
+        this.salirEnMillis = salirEnMillis;
+    }
+
+    // Métodos de movimiento
     public void moverDerecha() {
         x = x + velocidad;
     }
