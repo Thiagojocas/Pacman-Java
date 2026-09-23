@@ -10,12 +10,17 @@ public class PacmanJugador {
     private String direccionActual;   // la que se está ejecutando de verdad
     private String direccionDeseada;  // la última tecla que tocó el jugador
 
+    // NUEVO: cuántas veces puede romper paredes con la tecla F.
+    // Cada Power Pellet especial (tile 5) suma 1.
+    private int cargasRomperParedes;
+
     public PacmanJugador(int xInicial, int yInicial) {
         x = xInicial;
         y = yInicial;
         velocidad = 7; // debe ser divisor exacto de Tablero.TILE_SIZE
         direccionActual = null;
         direccionDeseada = null;
+        cargasRomperParedes = 0;
     }
 
     public int getX() {
@@ -52,6 +57,24 @@ public class PacmanJugador {
 
     public void setDireccionDeseada(String direccionDeseada) {
         this.direccionDeseada = direccionDeseada;
+    }
+
+    // NUEVO: manejo de las cargas para romper paredes.
+    public int getCargasRomperParedes() {
+        return cargasRomperParedes;
+    }
+
+    public void agregarCargaRomperParedes() {
+        cargasRomperParedes++;
+    }
+
+    // Intenta consumir una carga. Devuelve true si había disponible.
+    public boolean usarCargaRomperParedes() {
+        if (cargasRomperParedes > 0) {
+            cargasRomperParedes--;
+            return true;
+        }
+        return false;
     }
 
     public void moverDerecha() {

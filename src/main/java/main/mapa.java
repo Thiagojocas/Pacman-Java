@@ -8,37 +8,14 @@ package main;
  * 0 = espacio vacío (interior casa fantasmas)
  * 1 = pared
  * 2 = punto normal
- * 3 = Power Pellet
+ * 3 = Power Pellet (asusta fantasmas)
  * 4 = puerta de la casa de los fantasmas
+ * 5 = Power Pellet ESPECIAL (asusta + da 1 carga de "romper paredes")
+ * 6 = pared rota (queda transitable, no cuenta para ganar)
  *
  * Los túneles están en la fila 14.
  *
- * CORRECCIONES ACUMULADAS:
- *  - Fila 6,  col 14: 2 -> 1 (punto aislado).
- *  - Filas 16-18: casa de fantasmas cerrada (costados y fondo).
- *  - Fila 22, col 14: 1 -> 2 (conexión vertical inferior).
- *  - Fila 25, col 14: 1 -> 2 (conexión vertical inferior).
- *  - Fila 20, col 20: 2 -> 1 (aislada).
- *  - Fila 20, col 23: 2 -> 1 (colgante).
- *  - Fila 21, col 19: 2 -> 1 (par aislado).
- *  - Fila 22, col 19: 2 -> 1 (par aislado).
- *  - Fila 25, col 21: 2 -> 1 (colgante).
- *
- *  - Fila 7,  col 11: 1 -> 2 (abre salida a la fila 6 col 11).
- *  - Fila 7,  col 17: 1 -> 2 (abre salida a la fila 6 col 17).
- *  - Fila 8,  col 13: 1 -> 2 (une las filas 8 y 9 con salida).
- *  - Fila 8,  col 14: 1 -> 2 (idem).
- *  - Fila 9,  col 21: 2 -> 1 (stub sin salida).
- *  - Fila 15, col 10: 2 -> 1 (corredor sin salida).
- *  - Fila 16, col 10: 2 -> 1 (idem).
- *  - Fila 17, col 10: 2 -> 1 (idem).
- *  - Fila 19, col 11: 2 -> 1 (stub).
- *  - Fila 19, col 14: 2 -> 1 (stub).
- *  - Fila 19, col 21: 2 -> 1 (stub).
- *  - Fila 20, col 22: 1 -> 2 (abre salida a las filas 19 y 21).
- *  - Fila 20, col 25: 1 -> 2 (abre salida a las filas 19 y 21).
- *  - Fila 28, col  6: 1 -> 2 (abre salida a la fila 27).
- *  - Fila 28, col 11: 1 -> 2 (abre salida a las filas 27 y 29).
+ * Los Power Pellets especiales (5) son los de la fila 3 (arriba).
  */
 
 public class mapa {
@@ -59,8 +36,8 @@ public class mapa {
         // FILA 2
         {1,2,1,1,1,1,2,1,1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,1,1,2,1},
 
-        // FILA 3 - POWER PELLETS
-        {1,3,1,1,1,1,2,1,1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,1,1,3,1},
+        // FILA 3 - POWER PELLETS ESPECIALES (dan poder de romper paredes)
+        {1,5,1,1,1,1,2,1,1,1,1,2,1,1,2,1,1,1,1,2,1,1,1,1,1,1,5,1},
 
         // FILA 4
         {1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1},
@@ -71,13 +48,13 @@ public class mapa {
         // FILA 6
         {1,2,2,2,2,2,2,1,1,2,2,2,1,1,1,1,1,2,2,2,1,1,2,2,2,2,2,1},
 
-        // FILA 7 - (col 11 y col 17 ahora abren salida a la fila 6)
+        // FILA 7 
         {1,1,1,1,1,1,2,1,1,1,2,2,1,1,1,1,1,2,1,2,1,1,2,1,1,1,1,1},
 
-        // FILA 8 - (col 13 y col 14 ahora conectan con la fila 9)
+        // FILA 8 
         {1,1,1,1,1,1,2,1,1,1,2,2,2,2,2,1,1,2,2,2,1,1,2,1,1,1,1,1},
 
-        // FILA 9 - (col 21 convertida en pared: era stub sin salida)
+        // FILA 9 
         {1,2,2,2,2,2,2,1,1,1,1,2,1,1,2,1,1,2,1,1,1,1,2,2,2,2,2,1},
 
         // FILA 10
@@ -95,25 +72,25 @@ public class mapa {
         // FILA 14 - TÚNEL
         {2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
 
-        // FILA 15 - CASA / PUERTA (col 10 convertida en pared: corredor sin salida)
+        // FILA 15 - CASA / PUERTA 
         {1,2,1,1,1,1,2,1,1,1,1,1,1,4,4,1,1,2,1,1,2,1,1,1,1,1,2,1},
 
-        // FILA 16 - INTERIOR CASA (col 10 convertida en pared)
+        // FILA 16 - INTERIOR CASA 
         {1,2,1,1,1,1,2,1,1,1,1,1,0,0,0,0,1,2,1,1,2,1,1,1,1,1,2,1},
 
-        // FILA 17 - INTERIOR CASA (col 10 convertida en pared)
+        // FILA 17 - INTERIOR CASA 
         {1,2,2,2,2,2,2,1,1,1,1,1,0,0,0,0,1,2,1,1,2,2,2,2,2,2,2,1},
 
         // FILA 18 - FONDO CASA
         {1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,2,1},
 
-        // FILA 19 - (cols 11, 14 y 21 convertidas en pared: eran stubs)
+        // FILA 19 
         {1,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,2,2,2,2,2,1},
 
-        // FILA 20 - (cols 22 y 25 abren salida hacia filas 19 y 21)
+        // FILA 20 
         {1,1,1,2,1,1,2,1,1,1,2,2,2,2,2,2,2,2,1,1,1,1,2,1,1,2,1,1},
 
-        // FILA 21 - POWER PELLETS
+        // FILA 21 - POWER PELLETS (normales, solo asustan)
         {1,3,2,2,1,1,2,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,2,1,1,2,3,1},
 
         // FILA 22
@@ -134,7 +111,7 @@ public class mapa {
         // FILA 27
         {1,2,1,1,1,1,2,1,1,1,1,2,1,1,2,1,1,2,1,1,1,1,2,1,1,1,2,1},
 
-        // FILA 28 - POWER PELLETS (cols 6 y 11 abren salida)
+        // FILA 28 - POWER PELLETS (normales, solo asustan)
         {1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,1,2,2,3,1},
 
         // FILA 29

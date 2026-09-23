@@ -65,7 +65,7 @@ public class Fantasma {
     }
 
     public void setVelocidad(int velocidad) {
-        this.velocidad = velocidad;
+        this.velocidad = 7;
     }
 
     public String getDireccionActual() {
