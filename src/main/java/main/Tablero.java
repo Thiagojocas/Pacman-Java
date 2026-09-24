@@ -5,6 +5,9 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
@@ -43,6 +46,9 @@ public class Tablero extends JPanel {
     private Fantasma fantasma2;
     private Fantasma fantasma3;
     private Fantasma fantasma4;
+    
+    private BufferedImage spriteFred;
+    
     private Timer timer;
     private boolean juegoTerminado; // Indica si el juego ya terminó.
     private boolean gano; // Indica si el jugador ganó. true = ganó | false = todavía no ganó.
@@ -63,6 +69,14 @@ public class Tablero extends JPanel {
     public Tablero() {
         setPreferredSize(new Dimension(COLUMNAS * TILE_SIZE, FILAS * TILE_SIZE));
         setBackground(Color.BLACK);
+        
+        try {
+            spriteFred = ImageIO.read(
+                getClass().getResource("/main/sprites/fred_derecha_1.png")
+            );
+        } catch (IOException | IllegalArgumentException e) {
+            System.out.println("No se pudo cargar el sprite de FRED.");
+        }
 
         // Posicion inicial: DEBE ser multiplo de TILE_SIZE para que el
         // sistema de alineacion a la grilla funcione desde el arranque.
@@ -1035,11 +1049,27 @@ private void dibujarMapa(Graphics g) {
     }
 
     private void dibujarFantasma(Graphics g) {
+
+    // FRED usa su imagen
+    if (spriteFred != null) {
+        g.drawImage(
+            spriteFred,
+            fantasma1.getX(),
+            fantasma1.getY(),
+            Fantasma.TAMANO,
+            Fantasma.TAMANO,
+            this
+        );
+    } else {
+        // Si la imagen no carga, seguimos mostrando el fantasma rojo
         dibujarUnFantasma(g, fantasma1, Color.RED);
-        dibujarUnFantasma(g, fantasma2, Color.PINK);
-        dibujarUnFantasma(g, fantasma3, Color.CYAN);
-        dibujarUnFantasma(g, fantasma4, Color.ORANGE);
     }
+
+    // Los otros tres siguen igual por ahora
+    dibujarUnFantasma(g, fantasma2, Color.PINK);
+    dibujarUnFantasma(g, fantasma3, Color.CYAN);
+    dibujarUnFantasma(g, fantasma4, Color.ORANGE);
+}
 
     private void dibujarUnFantasma(Graphics g, Fantasma fantasma, Color colorNormal) {
         String estado = fantasma.getEstado();
