@@ -25,7 +25,7 @@ public class Puntos {
         return cantidad;
     }
 
-    // Este método recibe la FILA y la COLUMNA donde se encuentra Pac-Man.
+    // Este método recibe la fila y la columna donde se encuentra Pac-Man.
     // Devuelve:
     // true  -> si encontró y comió un punto.
     // false -> si no había un punto.
@@ -51,7 +51,7 @@ public class Puntos {
         return false;
     }
 
-    // Power Pellet NORMAL (tile 3). Solo activa el modo asustado.
+    // Power Pellet normal (tile 3). Solo activa el modo asustado.
     public static boolean comerPowerPellet(int fila, int columna) {
 
         if (fila < 0 || fila >= mapa.MATRIZ.length ||
@@ -72,9 +72,8 @@ public class Puntos {
         return false;
     }
 
-    // Power Pellet ESPECIAL (tile 5). Activa el modo asustado Y da una
+    // Power Pellet especial (tile 5). Activa el modo asustado Y da una
     // carga para romper paredes con la tecla F.
-    // No cuenta para la condición de victoria.
     public static boolean comerPowerPelletEspecial(int fila, int columna) {
 
         if (fila < 0 || fila >= mapa.MATRIZ.length ||

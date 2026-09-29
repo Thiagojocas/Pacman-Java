@@ -51,7 +51,7 @@ public class Tablero extends JPanel {
 
     // Momento (System.currentTimeMillis()) en el que termina el modo
     // asustado. 0 significa que el modo asustado no está activo.
-     // NUEVO: Guardar el momento en que arrancó el juego  
+     //  Guardar el momento en que arrancó el juego  
     private long inicioJuegoMillis;  
     
     private long finAsustadoEnMillis = 0;
@@ -110,7 +110,7 @@ public class Tablero extends JPanel {
             public void keyPressed(KeyEvent e) {
                 int codigo = e.getKeyCode();
 
-                // Ya NO movemos aca. Solo guardamos la intencion del jugador;
+                
                 // el Timer decide cuando aplicarla (al llegar al centro de una celda).
                 if (codigo == KeyEvent.VK_RIGHT) {
                     pacman.setDireccionDeseada("derecha");
@@ -198,17 +198,11 @@ public class Tablero extends JPanel {
         aplicarTunel();
     }
 
-    // =========================================================
-    // NUEVO: habilidad de romper paredes con la tecla F.
-    // Rompe la celda que está JUSTO delante de Pac-Man, en la
+ 
+    //  habilidad de romper paredes con la tecla F.
+    // Rompe la celda que está delante de Pac-Man, en la
     // dirección en la que se está moviendo.
-    // Requisitos:
-    //   - Tener al menos 1 carga disponible.
-    //   - La celda destino debe ser una pared (tile 1).
-    //   - La celda destino no puede ser la puerta (tile 4) ni
-    //     estar fuera del mapa.
-    // Cuando se rompe, la celda pasa a tile 6 (transitable).
-    // =========================================================
+    
     private void intentarRomperPared() {
 
         if (juegoTerminado) {
@@ -246,7 +240,7 @@ public class Tablero extends JPanel {
         }
 
         // 3) Solo se rompen paredes (tile 1).
-        //    Ya rota (6), pasillo (0/2/3/5): no se puede romper.
+        
         if (mapa.MATRIZ[filaDestino][columnaDestino] != 1) {
             return;
         }
@@ -310,8 +304,6 @@ public class Tablero extends JPanel {
     }
 
     // Indica si la celda (fila, columna) forma parte de la casa de los fantasmas.
-    // Ojo: el tile 6 (pared rota) NO es casa, así que Pac-Man puede pasar
-    // por donde rompió una pared.
    private boolean esCasaFantasmas(int fila, int columna) {
 
     if (fila < 15 || fila > 17 || columna < 11 || columna > 16) {
@@ -322,7 +314,7 @@ public class Tablero extends JPanel {
 
     // 4 = puerta
     // 0 = interior de la casa
-    // 6 = pared rota -> NO cuenta como casa
+    // 6 = pared rota -> no cuenta como casa
 
     return tile == 0 || tile == 4;
 }
@@ -364,7 +356,7 @@ public class Tablero extends JPanel {
         }
     }
 
-    // Actualiza el movimiento de UN fantasma.
+    // Actualiza el movimiento de un fantasma.
 private void actualizarFantasma(Fantasma fantasma) {
 
     boolean centrado = (fantasma.getX() % TILE_SIZE == 0)
@@ -384,10 +376,10 @@ private void actualizarFantasma(Fantasma fantasma) {
 // despues. Se llama UNICAMENTE cuando el fantasma está centrado.
 private void actualizarEstadoFantasma(Fantasma fantasma) {
 
-    // =========================================================
+    
     // SALIDA ESCALONADA: mientras el fantasma esté EN_CASA y
     // todavía no le toque su turno, lo dejamos quieto.
-    // =========================================================
+    
     if (Fantasma.EN_CASA.equals(fantasma.getEstado())) {
         long transcurrido = System.currentTimeMillis() - inicioJuegoMillis;
         if (transcurrido < fantasma.getSalirEnMillis()) {
@@ -405,9 +397,9 @@ private void actualizarEstadoFantasma(Fantasma fantasma) {
     int fila = fantasma.getY() / TILE_SIZE;
     int columna = fantasma.getX() / TILE_SIZE;
 
-    // =========================================================
+    
     // LLEGADA A LA CASA (ojos volviendo).
-    // =========================================================
+
     if (Fantasma.COMIDO.equals(fantasma.getEstado())) {
         int filaCasa = fantasma.getYCasa() / TILE_SIZE;
         int colCasa  = fantasma.getXCasa() / TILE_SIZE;
@@ -429,13 +421,13 @@ private void actualizarEstadoFantasma(Fantasma fantasma) {
     // Ajustamos la velocidad según el estado ACTUAL.
     switch (fantasma.getEstado()) {
         case Fantasma.ASUSTADO:
-            fantasma.setVelocidad(1);
+            fantasma.setVelocidad(3);
             break;
         case Fantasma.COMIDO:
             fantasma.setVelocidad(7);
             break;
         default:
-            fantasma.setVelocidad(3);
+            fantasma.setVelocidad(7);
             break;
     }
 
@@ -448,9 +440,9 @@ private boolean yaTerminoElAsustado() {
     return finAsustadoEnMillis != 0 && System.currentTimeMillis() >= finAsustadoEnMillis;
 }
 
-    // =========================================================
+   
     // IA DE FANTASMAS
-    // =========================================================
+   
 private String elegirDireccionFantasma(int fila, int columna, Fantasma fantasma) {
 
     boolean comido = Fantasma.COMIDO.equals(fantasma.getEstado());
@@ -520,9 +512,9 @@ private String elegirDireccionFantasma(int fila, int columna, Fantasma fantasma)
     return mejorDireccion;
 }
 
-    // =========================================================
+    
     // Objetivo de persecución según el TIPO de fantasma.
-    // =========================================================
+   
     private int[] calcularObjetivoPersecucion(Fantasma fantasma) {
 
         int pf = pacman.getY() / TILE_SIZE;
@@ -567,9 +559,9 @@ private String elegirDireccionFantasma(int fila, int columna, Fantasma fantasma)
         return new int[] { pf, pc };
     }
 
-    // =========================================================
+  
     // Ruta forzada para SALIR DE LA CASA.
-    // =========================================================
+    
     private String direccionParaSalirDeCasa(int fila, int columna, Fantasma fantasma) {
 
         int colPuerta = 13;
@@ -766,8 +758,7 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
     }
 
     // Vuelve a Pac-Man y a los fantasmas a sus posiciones y estado iniciales.
-    // OJO: las cargas de romper paredes NO se resetean, y las paredes ya
-    // rotas siguen rotas (la matriz conserva los cambios de esta partida).
+    
     private void reiniciarPosiciones() {
         pacman.setX(1 * TILE_SIZE);
         pacman.setY(1 * TILE_SIZE);
@@ -809,7 +800,7 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         if (fila < 0 || fila >= FILAS || columna < 0 || columna >= COLUMNAS) {
             return true;
         }
-        // Solo el tile 1 es pared. El 6 (pared rota) NO es pared.
+        // Solo el tile 1 es pared. El 6 (pared rota) no es pared.
         return mapa.MATRIZ[fila][columna] == 1;
     }
 
@@ -825,8 +816,8 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         if (perdio){dibujarPantallaGameOver(g);}
         }
 
-    // NUEVO: recordatorio visual de la habilidad de romper paredes.
-    // Se muestra en la esquina superior derecha SOLO si hay cargas.
+    //  recordatorio visual de la habilidad de romper paredes.
+    // Se muestra en la esquina superior derecha solo si hay cargas.
     private void dibujarRecordatorioHabilidad(Graphics g) {
 
         int cargas = pacman.getCargasRomperParedes();
@@ -844,7 +835,7 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         g.setColor(new Color(0, 0, 0, 200));
         g.fillRoundRect(xPanel, yPanel, anchoPanel, altoPanel, 12, 12);
 
-        // Borde naranja (dos veces, para darle un poco de grosor).
+        // Borde naranja 
         g.setColor(Color.ORANGE);
         g.drawRoundRect(xPanel, yPanel, anchoPanel, altoPanel, 12, 12);
         g.drawRoundRect(xPanel + 1, yPanel + 1, anchoPanel - 2, altoPanel - 2, 12, 12);
@@ -998,8 +989,8 @@ private void dibujarMapa(Graphics g) {
                     break;
 
                 case 5:
-                    // NUEVO: Power Pellet ESPECIAL (naranja con anillo
-                    // blanco). Da el poder de romper paredes con F.
+                    //  Power Pellet especial 
+                    // Da el poder de romper paredes con F.
                     g.setColor(Color.ORANGE);
                     g.fillOval(
                         x + TILE_SIZE / 2 - 6,
@@ -1017,7 +1008,7 @@ private void dibujarMapa(Graphics g) {
                     break;
 
                 case 6:
-                    // NUEVO: pared rota. No se dibuja nada (se ve
+                    // pared rota. No se dibuja nada (se ve
                     // como una celda vacía), pero es transitable.
                     break;
 

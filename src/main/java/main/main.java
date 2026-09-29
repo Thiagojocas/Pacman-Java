@@ -12,15 +12,16 @@ public class main {
         window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.setResizable(false);
 
-        Tablero tablero = new Tablero();
-        window.add(tablero);
+        // Primero mostramos el MENÚ. Cuando el jugador aprieta "JUGAR",
+        // el propio menú reemplaza este panel por un Tablero nuevo.
+        Menu menu = new Menu(window);
+        window.add(menu);
 
         window.pack();
         window.setLocationRelativeTo(null);
         window.setVisible(true);
 
-        // Se pide el foco despues de mostrar la ventana para que
-        // el KeyListener del tablero funcione desde el arranque.
-        tablero.requestFocusInWindow();
+        // Le pasamos el foco al menú para que los botones funcionen bien.
+        menu.requestFocusInWindow();
     }
 }

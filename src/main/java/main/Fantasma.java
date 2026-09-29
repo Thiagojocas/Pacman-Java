@@ -21,8 +21,8 @@ public class Fantasma {
     private int velocidad;
     private String direccionActual;
     private String estado;
-    private String tipo;                    // NUEVO: identifica qué fantasma es
-    private long salirEnMillis;            // NUEVO: cuándo le toca salir de la casa
+    private String tipo;                    //  identifica qué fantasma es
+    private long salirEnMillis;            // cuándo le toca salir de la casa
 
     // Posición (en píxeles) del punto dentro de la casa
     private int xCasa;
@@ -36,9 +36,9 @@ public class Fantasma {
         y = yInicial;
         this.xCasa = xCasa;
         this.yCasa = yCasa;
-        velocidad = 3;
+        velocidad = 7;
         direccionActual = null;
-        estado = EN_CASA;               // MODIFICADO: ahora empieza EN_CASA
+        estado = EN_CASA;               //  ahora empieza EN_CASA
         tipo = TIPO_BLINKY;             // Por defecto Blinky, se cambia con setTipo()
         salirEnMillis = 0;              // Se asigna en Tablero
     }
@@ -65,7 +65,7 @@ public class Fantasma {
     }
 
     public void setVelocidad(int velocidad) {
-        this.velocidad = 7;
+        this.velocidad = velocidad;
     }
 
     public String getDireccionActual() {
@@ -100,7 +100,7 @@ public class Fantasma {
         this.revivirEnMillis = revivirEnMillis;
     }
 
-    // NUEVOS: Getters y Setters para tipo y salirEnMillis
+    // Getters y Setters para tipo y salirEnMillis
     public String getTipo() {
         return tipo;
     }

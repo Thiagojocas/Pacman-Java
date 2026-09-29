@@ -10,7 +10,7 @@ public class PacmanJugador {
     private String direccionActual;   // la que se está ejecutando de verdad
     private String direccionDeseada;  // la última tecla que tocó el jugador
 
-    // NUEVO: cuántas veces puede romper paredes con la tecla F.
+    // cuántas veces puede romper paredes con la tecla F.
     // Cada Power Pellet especial (tile 5) suma 1.
     private int cargasRomperParedes;
 
