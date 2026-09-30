@@ -12,22 +12,17 @@ import javax.swing.JPanel;
 
 public class Menu extends JPanel {
 
-    // Referencia a la ventana para poder reemplazar este panel por el Tablero
-    // cuando el jugador aprieta "JUGAR".
     private JFrame ventana;
 
     public Menu(JFrame ventana) {
 
         this.ventana = ventana;
 
-        // Mismo tamaño preferido que el Tablero, así al hacer pack() la
-        // ventana no cambia de tamaño ni se mueve.
         int ancho = mapa.COLUMNAS * Tablero.TILE_SIZE;
         int alto = mapa.FILAS * Tablero.TILE_SIZE;
         setPreferredSize(new Dimension(ancho, alto));
         setBackground(Color.BLACK);
 
-        // Layout nulo para posicionar los botones a mano.
         setLayout(null);
 
         // ----- BOTÓN JUGAR -----
@@ -65,8 +60,6 @@ public class Menu extends JPanel {
         add(btnSalir);
     }
 
-    // Reemplaza este menú por un Tablero nuevo y le pasa el foco para
-    // que el KeyListener reciba las teclas.
     private void iniciarJuego() {
         Tablero tablero = new Tablero();
 
@@ -92,8 +85,6 @@ public class Menu extends JPanel {
         g.drawString(titulo, (ancho - anchoTitulo) / 2, 130);
 
         // ----- PAC-MAN DECORATIVO -----
-        // fillArc(x, y, ancho, alto, anguloInicio, anguloBarrido).
-        // 30° de inicio y 300° de barrido deja una "boca" mirando a la derecha.
         g.setColor(Color.YELLOW);
         g.fillArc(ancho / 2 - 30, 155, 60, 60, 30, 300);
 
@@ -106,15 +97,30 @@ public class Menu extends JPanel {
         g.drawString(subtitulo, (ancho - anchoSub) / 2, 260);
 
         // ----- HEADER CONTROLES -----
+        // FIX: ahora sí dibuja el texto del encabezado.
         g.setColor(Color.CYAN);
         g.setFont(new Font("Arial", Font.BOLD, 18));
-        
+        String controles = "CONTROLES";
+        int anchoControles = g.getFontMetrics().stringWidth(controles);
+        g.drawString(controles, (ancho - anchoControles) / 2, 310);
 
         // ----- LÍNEAS DE INSTRUCCIONES -----
+        // FIX: antes faltaban el array de líneas y el loop que las dibuja.
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 14));
-        
+
+        String[] lineas = {
+            "Flechas: mover a Pac-Man",
+            "F: romper pared (necesitás una carga)",
+            "Come todos los puntos para ganar",
+            "¡Cuidado con los fantasmas!"
+        };
+
         int y = 345;
-        
+        for (String linea : lineas) {
+            int anchoLinea = g.getFontMetrics().stringWidth(linea);
+            g.drawString(linea, (ancho - anchoLinea) / 2, y);
+            y += 22;
+        }
     }
 }
