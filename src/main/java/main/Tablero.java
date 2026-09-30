@@ -47,13 +47,28 @@ public class Tablero extends JPanel {
     private Fantasma fantasma3;
     private Fantasma fantasma4;
     
-    private BufferedImage spriteFredDerecha;
-    private BufferedImage spriteFredIzquierda;
-    private BufferedImage spriteFredArriba;
-    private BufferedImage spriteFredAbajo;
-    
-    private BufferedImage spriteAsustadoAzul;
-    private BufferedImage spriteAsustadoBlanco;
+    // ===== SPRITES =====
+    private BufferedImage spritePacmanDerechaAbierto, spritePacmanDerechaSemi;
+    private BufferedImage spritePacmanIzquierdaAbierto, spritePacmanIzquierdaSemi;
+    private BufferedImage spritePacmanArribaAbierto, spritePacmanArribaSemi;
+    private BufferedImage spritePacmanAbajoAbierto, spritePacmanAbajoSemi;
+    private BufferedImage spritePacmanCerrado;
+
+    private BufferedImage spriteFredDerecha, spriteFredIzquierda;
+    private BufferedImage spriteFredArriba, spriteFredAbajo;
+    private BufferedImage spriteColmanDerecha, spriteColmanIzquierda;
+    private BufferedImage spriteColmanArriba, spriteColmanAbajo;
+    private BufferedImage spritePoshoDerecha, spritePoshoIzquierda;
+    private BufferedImage spritePoshoArriba, spritePoshoAbajo;
+    private BufferedImage spriteSopaDerecha, spriteSopaIzquierda;
+    private BufferedImage spriteSopaArriba, spriteSopaAbajo;
+
+    private BufferedImage spriteAsustadoAzul, spriteAsustadoBlanco;
+    private BufferedImage spriteOjosDerecha, spriteOjosIzquierda;
+    private BufferedImage spriteOjosArriba, spriteOjosAbajo;
+    private BufferedImage spritePunto;
+    private BufferedImage spriteBolaAzul, spriteBolaRoja, spriteBolaVerde;
+    private BufferedImage spriteCorazon;
     
     private Timer timer;
     private boolean juegoTerminado; // Indica si el juego ya terminó.
@@ -68,6 +83,9 @@ public class Tablero extends JPanel {
     
     private long finAsustadoEnMillis = 0;
 
+    private long ultimoCambioAnimacion = 0;
+    private boolean pacmanBocaAbierta = true;
+
     // Cuántos fantasmas seguidos se comió Pac-Man con el Power Pellet
     // actual. Sirve para el puntaje en cadena: 200, 400, 800, 1600.
     private int fantasmasComidosSeguidos = 0;
@@ -76,34 +94,57 @@ public class Tablero extends JPanel {
         setPreferredSize(new Dimension(COLUMNAS * TILE_SIZE, FILAS * TILE_SIZE));
         setBackground(Color.BLACK);
         
-    //cargamos imagenes de los fantasmas
+        // ===== CARGA DE SPRITES =====
+        // Todos los recursos están dentro de:
+        // src/main/resources/main/sprites/
         try {
-    spriteFredDerecha = ImageIO.read(
-        getClass().getResource("/main/sprites/FredDerecha.png")
-    );
+            spritePacmanDerechaAbierto = cargarSprite("/main/sprites/DerechaAbi.png");
+            spritePacmanDerechaSemi = cargarSprite("/main/sprites/DerechaSemi.png");
+            spritePacmanIzquierdaAbierto = cargarSprite("/main/sprites/IzquierdaAbi.png");
+            spritePacmanIzquierdaSemi = cargarSprite("/main/sprites/IzquierdaSemi.png");
+            spritePacmanArribaAbierto = cargarSprite("/main/sprites/ArribaAbi.png");
+            spritePacmanArribaSemi = cargarSprite("/main/sprites/ArribaSemi.png");
+            spritePacmanAbajoAbierto = cargarSprite("/main/sprites/AbajoAbi.png");
+            spritePacmanAbajoSemi = cargarSprite("/main/sprites/AbajoSemi.png");
+            spritePacmanCerrado = cargarSprite("/main/sprites/Cerrado.png");
 
-    spriteFredIzquierda = ImageIO.read(
-        getClass().getResource("/main/sprites/FredIzquierda.png")
-    );
+            spriteFredDerecha = cargarSprite("/main/sprites/FredDerecha.png");
+            spriteFredIzquierda = cargarSprite("/main/sprites/FredIzquierda.png");
+            spriteFredArriba = cargarSprite("/main/sprites/FredArriba.png");
+            spriteFredAbajo = cargarSprite("/main/sprites/FredAbajo.png");
 
-    spriteFredArriba = ImageIO.read(
-        getClass().getResource("/main/sprites/FredArriba.png")
-    );
+            spriteColmanDerecha = cargarSprite("/main/sprites/ColmanDerecha.png");
+            spriteColmanIzquierda = cargarSprite("/main/sprites/ColmanIzquierda.png");
+            spriteColmanArriba = cargarSprite("/main/sprites/ColmanArriba.png");
+            spriteColmanAbajo = cargarSprite("/main/sprites/ColmanAbajo.png");
 
-    spriteFredAbajo = ImageIO.read(
-        getClass().getResource("/main/sprites/FredAbajo.png")
-    );
-    spriteAsustadoAzul = ImageIO.read(
-        getClass().getResource("/main/sprites/AsustadoAzul.png")
-    );
+            spritePoshoDerecha = cargarSprite("/main/sprites/PoshoDerecha.png");
+            spritePoshoIzquierda = cargarSprite("/main/sprites/PoshoIzquierda.png");
+            spritePoshoArriba = cargarSprite("/main/sprites/PoshoArriba.png");
+            spritePoshoAbajo = cargarSprite("/main/sprites/PoshoAbajo.png");
 
-    spriteAsustadoBlanco = ImageIO.read(
-        getClass().getResource("/main/sprites/AsustadoBlanco.png")
-    );
+            spriteSopaDerecha = cargarSprite("/main/sprites/SopaDerecha.png");
+            spriteSopaIzquierda = cargarSprite("/main/sprites/SopaIzquierda.png");
+            spriteSopaArriba = cargarSprite("/main/sprites/SopaArriba.png");
+            spriteSopaAbajo = cargarSprite("/main/sprites/SopaAbajo.png");
 
-    } catch (IOException | IllegalArgumentException e) {
-        System.out.println("No se pudieron cargar los sprites de FRED.");
-    }
+            spriteAsustadoAzul = cargarSprite("/main/sprites/AsustadoAzul.png");
+            spriteAsustadoBlanco = cargarSprite("/main/sprites/AsustadoBlanco.png");
+
+            spriteOjosDerecha = cargarSprite("/main/sprites/OjosDerecha.png");
+            spriteOjosIzquierda = cargarSprite("/main/sprites/OjosIzquierda.png");
+            spriteOjosArriba = cargarSprite("/main/sprites/OjosArriba.png");
+            spriteOjosAbajo = cargarSprite("/main/sprites/OjosAbajo.png");
+
+            spritePunto = cargarSprite("/main/sprites/Puntos.png");
+            spriteBolaAzul = cargarSprite("/main/sprites/BolaAzul.png");
+            spriteBolaRoja = cargarSprite("/main/sprites/BolaRoja.png");
+            spriteBolaVerde = cargarSprite("/main/sprites/BolaVerde.png");
+            spriteCorazon = cargarSprite("/main/sprites/Corazon.png");
+
+        } catch (Exception e) {
+            System.out.println("Error cargando sprites: " + e.getMessage());
+        }
 
         // Posicion inicial: DEBE ser multiplo de TILE_SIZE para que el
         // sistema de alineacion a la grilla funcione desde el arranque.
@@ -190,6 +231,17 @@ public class Tablero extends JPanel {
 
     
     
+    // Carga un sprite desde src/main/resources.
+    private BufferedImage cargarSprite(String ruta) throws IOException {
+        java.io.InputStream entrada = getClass().getResourceAsStream(ruta);
+
+        if (entrada == null) {
+            throw new IOException("No se encontró: " + ruta);
+        }
+
+        return ImageIO.read(entrada);
+    }
+
     // Logica central del movimiento por celdas
     private void actualizarMovimiento() {
         boolean centrado = (pacman.getX() % TILE_SIZE == 0) && (pacman.getY() % TILE_SIZE == 0);
@@ -961,226 +1013,242 @@ private void aplicarTunelFantasma(Fantasma fantasma) {
         g.drawString(mensaje, xMensaje, 320);
     }
     
-        private void dibujarPuntaje(Graphics g) {
-            g.setColor(Color.WHITE);
-            g.setFont(g.getFont().deriveFont(18f));
-            g.drawString("Puntaje: " + Puntos.getPuntaje(), 10, 20);
-            g.drawString("Vidas: " + vidas, 10, 40);
+
+    private void dibujarPuntaje(Graphics g) {
+        g.setColor(Color.WHITE);
+        g.setFont(g.getFont().deriveFont(java.awt.Font.BOLD, 18f));
+        g.drawString("Puntaje: " + Puntos.getPuntaje(), 10, 20);
+
+        g.setFont(g.getFont().deriveFont(java.awt.Font.PLAIN, 16f));
+        g.drawString("Vidas:", 10, 46);
+
+        if (spriteCorazon != null) {
+            for (int i = 0; i < vidas; i++) {
+                g.drawImage(spriteCorazon, 68 + (i * 27), 24, 23, 23, this);
+            }
+        } else {
+            g.drawString(String.valueOf(vidas), 68, 46);
+        }
     }
 
-private void dibujarMapa(Graphics g) {
+    private void dibujarMapa(Graphics g) {
+        int[][] matriz = mapa.MATRIZ;
 
-    int[][] matriz = mapa.MATRIZ;
+        g.setColor(Color.BLACK);
+        g.fillRect(0, 0, getWidth(), getHeight());
 
-    g.setColor(Color.BLACK);
-    g.fillRect(0, 0, getWidth(), getHeight());
+        for (int fila = 0; fila < FILAS; fila++) {
+            for (int col = 0; col < COLUMNAS; col++) {
+                int tile = matriz[fila][col];
+                int x = col * TILE_SIZE;
+                int y = fila * TILE_SIZE;
 
-    for (int fila = 0; fila < FILAS; fila++) {
+                switch (tile) {
+                    case 1:
+                        g.setColor(new Color(0, 180, 255));
+                        g.drawRoundRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4, 6, 6);
+                        break;
 
-        for (int col = 0; col < COLUMNAS; col++) {
+                    case 2:
+                        dibujarSpriteCentrado(g, spritePunto, x, y, 17, 19);
+                        break;
 
-            int tile = matriz[fila][col];
+                    case 3:
+                        // Power Pellet normal: alterna entre las bolas roja y azul.
+                        BufferedImage bolaNormal =
+                                ((System.currentTimeMillis() / 250) % 2 == 0)
+                                ? spriteBolaRoja : spriteBolaAzul;
+                        dibujarSpriteCentrado(g, bolaNormal, x, y, 20, 21);
+                        break;
 
-            int x = col * TILE_SIZE;
-            int y = fila * TILE_SIZE;
+                    case 4:
+                        g.setColor(Color.PINK);
+                        g.fillRect(x + 2, y + TILE_SIZE / 2 - 2, TILE_SIZE - 4, 4);
+                        break;
 
-            switch (tile) {
+                    case 5:
+                        // Power Pellet especial: bola verde.
+                        dibujarSpriteCentrado(g, spriteBolaVerde, x, y, 20, 21);
+                        break;
 
-                case 1:
-                    g.setColor(new Color(0, 180, 255));
-                    g.drawRoundRect(
-                        x + 2,
-                        y + 2,
-                        TILE_SIZE - 4,
-                        TILE_SIZE - 4,
-                        6,
-                        6
-                    );
-                    break;
+                    case 6:
+                        break;
 
-                case 2:
-                    g.setColor(Color.WHITE);
-                    g.fillOval(
-                        x + TILE_SIZE / 2 - 2,
-                        y + TILE_SIZE / 2 - 2,
-                        4,
-                        4
-                    );
-                    break;
-
-                case 3:
-                    // Power Pellet normal (solo asusta).
-                    g.setColor(Color.YELLOW);
-                    g.fillOval(
-                        x + TILE_SIZE / 2 - 5,
-                        y + TILE_SIZE / 2 - 5,
-                        10,
-                        10
-                    );
-                    break;
-
-                case 4:
-                    g.setColor(Color.PINK);
-                    g.fillRect(
-                        x + 2,
-                        y + TILE_SIZE / 2 - 2,
-                        TILE_SIZE - 4,
-                        4
-                    );
-                    break;
-
-                case 5:
-                    //  Power Pellet especial 
-                    // Da el poder de romper paredes con F.
-                    g.setColor(Color.ORANGE);
-                    g.fillOval(
-                        x + TILE_SIZE / 2 - 6,
-                        y + TILE_SIZE / 2 - 6,
-                        12,
-                        12
-                    );
-                    g.setColor(Color.WHITE);
-                    g.drawOval(
-                        x + TILE_SIZE / 2 - 8,
-                        y + TILE_SIZE / 2 - 8,
-                        16,
-                        16
-                    );
-                    break;
-
-                case 6:
-                    // pared rota. No se dibuja nada (se ve
-                    // como una celda vacía), pero es transitable.
-                    break;
-
-                case 0:
-                    // Interior de la casa: no dibujamos nada.
-                    break;
+                    case 0:
+                        break;
+                }
             }
         }
     }
-}
 
-    private void dibujarPacman(Graphics g) {
-        g.setColor(Color.YELLOW);
-        g.fillOval(
-            pacman.getX() + 1,
-            pacman.getY() + 1,
-            PacmanJugador.TAMANO,
-            PacmanJugador.TAMANO
-        );
+    private void dibujarSpriteCentrado(Graphics g, BufferedImage sprite,
+            int xCelda, int yCelda, int ancho, int alto) {
+        if (sprite == null) {
+            return;
+        }
+
+        int x = xCelda + (TILE_SIZE - ancho) / 2;
+        int y = yCelda + (TILE_SIZE - alto) / 2;
+        g.drawImage(sprite, x, y, ancho, alto, this);
     }
 
-    private void dibujarFantasma(Graphics g) {
+    private void dibujarPacman(Graphics g) {
+        String direccion = pacman.getDireccionActual();
 
-    // Primero comprobamos si FRED está asustado.
-    // Si lo está, usamos el mismo sprite azul/blanco
-    // que van a usar los cuatro fantasmas.
-    if (Fantasma.ASUSTADO.equals(fantasma1.getEstado())) {
-        dibujarUnFantasma(g, fantasma1, Color.RED);
-    } else {
-        // FRED normal usa sus sprites según la dirección.
-        String direccion = fantasma1.getDireccionActual();
+        if (direccion == null) {
+            direccion = "derecha";
+        }
 
-        BufferedImage sprite = spriteFredDerecha;
+        long ahora = System.currentTimeMillis();
 
-        if ("izquierda".equals(direccion)) {
-            sprite = spriteFredIzquierda;
-        } else if ("arriba".equals(direccion)) {
-            sprite = spriteFredArriba;
-        } else if ("abajo".equals(direccion)) {
-            sprite = spriteFredAbajo;
-        } else if ("derecha".equals(direccion)) {
-            sprite = spriteFredDerecha;
+        // 3 estados visuales: cerrado -> semi -> abierto.
+        int frame = (int) ((ahora / 100) % 3);
+
+        BufferedImage sprite;
+
+        if (frame == 0) {
+            sprite = spritePacmanCerrado;
+        } else if (frame == 1) {
+            sprite = obtenerSpritePacmanSemi(direccion);
+        } else {
+            sprite = obtenerSpritePacmanAbierto(direccion);
         }
 
         if (sprite != null) {
-            g.drawImage(
-                sprite,
-                fantasma1.getX(),
-                fantasma1.getY(),
-                Fantasma.TAMANO,
-                Fantasma.TAMANO,
-                this
-            );
+            g.drawImage(sprite, pacman.getX(), pacman.getY(),
+                    PacmanJugador.TAMANO, PacmanJugador.TAMANO, this);
         } else {
-        // Si la imagen no carga, seguimos mostrando el fantasma rojo
-            dibujarUnFantasma(g, fantasma1, Color.RED);
+            g.setColor(Color.YELLOW);
+            g.fillOval(pacman.getX() + 1, pacman.getY() + 1,
+                    PacmanJugador.TAMANO, PacmanJugador.TAMANO);
         }
     }
 
-    // Los otros tres fantasmas.
-    dibujarUnFantasma(g, fantasma2, Color.PINK);
-    dibujarUnFantasma(g, fantasma3, Color.CYAN);
-    dibujarUnFantasma(g, fantasma4, Color.ORANGE);
-}
-
-    private void dibujarUnFantasma(Graphics g, Fantasma fantasma, Color colorNormal) {
-
-    String estado = fantasma.getEstado();
-
-    // Fantasma comido: mostramos los ojos.
-    if (Fantasma.COMIDO.equals(estado)) {
-
-        g.setColor(Color.WHITE);
-
-        g.fillOval(
-                fantasma.getX() + 3,
-                fantasma.getY() + 5,
-                5,
-                5
-        );
-
-        g.fillOval(
-                fantasma.getX() + 10,
-                fantasma.getY() + 5,
-                5,
-                5
-        );
-
-        return;
+    private BufferedImage obtenerSpritePacmanAbierto(String direccion) {
+        switch (direccion) {
+            case "izquierda":
+                return spritePacmanIzquierdaAbierto;
+            case "arriba":
+                return spritePacmanArribaAbierto;
+            case "abajo":
+                return spritePacmanAbajoAbierto;
+            case "derecha":
+            default:
+                return spritePacmanDerechaAbierto;
+        }
     }
 
-    // Fantasma asustado.
-    if (Fantasma.ASUSTADO.equals(estado)) {
+    private BufferedImage obtenerSpritePacmanSemi(String direccion) {
+        switch (direccion) {
+            case "izquierda":
+                return spritePacmanIzquierdaSemi;
+            case "arriba":
+                return spritePacmanArribaSemi;
+            case "abajo":
+                return spritePacmanAbajoSemi;
+            case "derecha":
+            default:
+                return spritePacmanDerechaSemi;
+        }
+    }
 
-        long restante = finAsustadoEnMillis - System.currentTimeMillis();
+    private void dibujarFantasma(Graphics g) {
+        dibujarFantasmaNormal(g, fantasma1,
+                spriteFredDerecha, spriteFredIzquierda,
+                spriteFredArriba, spriteFredAbajo);
 
-        boolean porTerminar = restante < 2000;
+        dibujarFantasmaNormal(g, fantasma2,
+                spriteColmanDerecha, spriteColmanIzquierda,
+                spriteColmanArriba, spriteColmanAbajo);
 
-        boolean parpadeoBlanco =
-                porTerminar && ((System.currentTimeMillis() / 200) % 2 == 0);
+        dibujarFantasmaNormal(g, fantasma3,
+                spritePoshoDerecha, spritePoshoIzquierda,
+                spritePoshoArriba, spritePoshoAbajo);
 
-        BufferedImage spriteAsustado;
+        dibujarFantasmaNormal(g, fantasma4,
+                spriteSopaDerecha, spriteSopaIzquierda,
+                spriteSopaArriba, spriteSopaAbajo);
+    }
 
-        if (parpadeoBlanco) {
-            spriteAsustado = spriteAsustadoBlanco;
+    private void dibujarFantasmaNormal(Graphics g, Fantasma fantasma,
+            BufferedImage derecha, BufferedImage izquierda,
+            BufferedImage arriba, BufferedImage abajo) {
+
+        String estado = fantasma.getEstado();
+
+        // Fantasma comido: solo se ven los ojos.
+        if (Fantasma.COMIDO.equals(estado)) {
+            BufferedImage ojos = spriteOjosDerecha;
+            String direccion = fantasma.getDireccionActual();
+
+            if ("izquierda".equals(direccion)) {
+                ojos = spriteOjosIzquierda;
+            } else if ("arriba".equals(direccion)) {
+                ojos = spriteOjosArriba;
+            } else if ("abajo".equals(direccion)) {
+                ojos = spriteOjosAbajo;
+            }
+
+            if (ojos != null) {
+                g.drawImage(ojos,
+                        fantasma.getX(),
+                        fantasma.getY() + 4,
+                        21,
+                        12,
+                        this);
+            }
+            return;
+        }
+
+        // Fantasma asustado.
+        if (Fantasma.ASUSTADO.equals(estado)) {
+            long restante = finAsustadoEnMillis - System.currentTimeMillis();
+            boolean porTerminar = restante < 2000;
+
+            boolean parpadeoBlanco =
+                    porTerminar && ((System.currentTimeMillis() / 200) % 2 == 0);
+
+            BufferedImage spriteAsustado =
+                    parpadeoBlanco ? spriteAsustadoBlanco : spriteAsustadoAzul;
+
+            if (spriteAsustado != null) {
+                g.drawImage(spriteAsustado,
+                        fantasma.getX(), fantasma.getY(),
+                        Fantasma.TAMANO, Fantasma.TAMANO, this);
+            }
+            return;
+        }
+
+        // Fantasma normal.
+        String direccion = fantasma.getDireccionActual();
+        BufferedImage sprite = derecha;
+
+        if ("izquierda".equals(direccion)) {
+            sprite = izquierda;
+        } else if ("arriba".equals(direccion)) {
+            sprite = arriba;
+        } else if ("abajo".equals(direccion)) {
+            sprite = abajo;
+        }
+
+        if (sprite != null) {
+            g.drawImage(sprite,
+                    fantasma.getX(), fantasma.getY(),
+                    Fantasma.TAMANO, Fantasma.TAMANO, this);
         } else {
-            spriteAsustado = spriteAsustadoAzul;
-        }
+            Color colorNormal = Color.RED;
 
-        if (spriteAsustado != null) {
-            g.drawImage(
-                    spriteAsustado,
-                    fantasma.getX(),
-                    fantasma.getY(),
-                    Fantasma.TAMANO,
-                    Fantasma.TAMANO,
-                    this
-            );
-        }
+            if (fantasma == fantasma2) {
+                colorNormal = Color.PINK;
+            } else if (fantasma == fantasma3) {
+                colorNormal = Color.CYAN;
+            } else if (fantasma == fantasma4) {
+                colorNormal = Color.ORANGE;
+            }
 
-        return;
+            g.setColor(colorNormal);
+            g.fillOval(fantasma.getX() + 1, fantasma.getY() + 1,
+                    Fantasma.TAMANO, Fantasma.TAMANO);
+        }
     }
-
-    // Fantasma normal.
-    g.setColor(colorNormal);
-
-    g.fillOval(
-            fantasma.getX() + 1,
-            fantasma.getY() + 1,
-            Fantasma.TAMANO,
-            Fantasma.TAMANO
-    );
-}
 }
