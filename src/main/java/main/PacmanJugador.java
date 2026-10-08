@@ -48,6 +48,10 @@ public class PacmanJugador {
         return velocidad;
     }
 
+    public void setVelocidad(int velocidad) {
+        this.velocidad = velocidad;
+    }
+
     public String getDireccionActual() {
         return direccionActual;
     }

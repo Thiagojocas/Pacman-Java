@@ -116,4 +116,25 @@ public class Puntos {
     public static boolean todosLosPuntosComidos() {
         return puntosRestantes == 0;
     }
+    
+    // Superbolita 7: Rayo Veloz.
+public static boolean comerRayoVeloz(int fila, int columna) {
+    if (mapa.MATRIZ[fila][columna] == 7) {
+        mapa.MATRIZ[fila][columna] = 0;
+        puntaje += 100;
+        return true;
+    }
+    return false;
+}
+
+// Superbolita 8: Rey del Laberinto.
+public static boolean comerReyDelLaberinto(int fila, int columna) {
+    if (mapa.MATRIZ[fila][columna] == 8) {
+        mapa.MATRIZ[fila][columna] = 0;
+        puntaje += 100;
+        return true;
+    }
+    return false;
+}
+    
 }

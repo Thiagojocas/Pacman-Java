@@ -33,12 +33,18 @@ public class Tablero extends JPanel {
     // Cuánto dura la habilidad de congelar fantasmas (tecla G).
     private static final int DURACION_CONGELADO_MS = 4000;
 
+    // Nuevos poderes especiales: Rayo Veloz y Rey del Laberinto.
+    private static final int DURACION_PODER_ESPECIAL_MS = 15000;
+    private static final int VELOCIDAD_NORMAL_PACMAN = 7;
+    // Se conserva la velocidad base para no desalinear a Pac-Man de la grilla.
+    // El Rayo Veloz aumenta la velocidad actualizando el movimiento dos veces por tick.
+
     // Cuántas cargas de romper paredes da cada Power Pellet especial (tile 5).
     private static final int CARGAS_POR_PELLET_ESPECIAL = 3;
 
     // Cuánto tiene que esperar un fantasma adentro de la casa, despues
     // de que Pac-Man se lo comió, antes de poder volver a salir.
-    private static final int TIEMPO_REAPARICION_MS = 20000;
+    private static final int TIEMPO_REAPARICION_MS = 10000;
 
     // Tiempos de salida escalonada (en milisegundos desde el inicio del juego)
     private static final long SALIDA_BLINKY_MS = 0;      // Sale inmediato
@@ -80,6 +86,8 @@ public class Tablero extends JPanel {
 
     private Timer timer;
     private boolean juegoTerminado; // Indica si el juego ya terminó.
+    private boolean juegoPausado = false;
+    private long inicioPausaMillis = 0;
     private boolean gano; // true = ganó | false = todavía no ganó.
     private boolean perdio; // true = chocó con un fantasma y perdió todas las vidas.
     private int vidas = 3; // El juego comienza con 3 vidas.
@@ -94,6 +102,10 @@ public class Tablero extends JPanel {
     // Momento en el que termina el congelamiento de fantasmas.
     // 0 significa que no hay congelamiento activo.
     private long finCongeladoEnMillis = 0;
+
+    // Finalización de los dos poderes nuevos.
+    private long finRayoVelozEnMillis = 0;
+    private long finReyLaberintoEnMillis = 0;
 
     // Cuántos fantasmas seguidos se comió Pac-Man con el Power Pellet
     // actual. Sirve para el puntaje en cadena: 200, 400, 800, 1600.
@@ -202,6 +214,26 @@ public class Tablero extends JPanel {
             @Override
             public void keyPressed(KeyEvent e) {
                 int codigo = e.getKeyCode();
+                if (codigo == KeyEvent.VK_P) {
+                    if (!juegoPausado) {
+                        juegoPausado = true;
+                        inicioPausaMillis = System.currentTimeMillis();
+                        timer.stop();
+                    } else {
+                        long tiempoPausado = System.currentTimeMillis() - inicioPausaMillis;
+
+                        // Congelar los tiempos de los poderes y efectos activos.
+                        if (finAsustadoEnMillis != 0) finAsustadoEnMillis += tiempoPausado;
+                        if (finCongeladoEnMillis != 0) finCongeladoEnMillis += tiempoPausado;
+                        if (finRayoVelozEnMillis != 0) finRayoVelozEnMillis += tiempoPausado;
+                        if (finReyLaberintoEnMillis != 0) finReyLaberintoEnMillis += tiempoPausado;
+
+                        juegoPausado = false;
+                        timer.start();
+                        repaint();
+                    }
+                    return;
+                }
 
                 // El Timer decide cuando aplicar la dirección (al llegar al centro de una celda).
                 if (codigo == KeyEvent.VK_RIGHT) {
@@ -218,6 +250,9 @@ public class Tablero extends JPanel {
                 } else if (codigo == KeyEvent.VK_G) {
                     // Habilidad de congelar fantasmas.
                     intentarCongelarFantasmas();
+                } else if (e.getKeyCode() == KeyEvent.VK_P) {
+                    juegoPausado = !juegoPausado;
+                    return;
                 }
             }
         });
@@ -226,7 +261,13 @@ public class Tablero extends JPanel {
 
             if (!juegoTerminado) {
 
+                actualizarPoderesEspeciales();
                 actualizarMovimiento();
+                // El Rayo Veloz duplica los pasos de movimiento, sin cambiar el tamaño
+                // de cada paso; así Pac-Man sigue alineado con las celdas y no atraviesa paredes.
+                if (rayoVelozActivo()) {
+                    actualizarMovimiento();
+                }
 
                 // Actualizamos los cuatro fantasmas.
                 actualizarFantasma(fantasma1);
@@ -255,6 +296,9 @@ public class Tablero extends JPanel {
 
     // Logica central del movimiento por celdas
     private void actualizarMovimiento() {
+        if (juegoPausado || juegoTerminado) {
+            return;
+        }
         boolean centrado = (pacman.getX() % TILE_SIZE == 0) && (pacman.getY() % TILE_SIZE == 0);
 
         if (centrado) {
@@ -276,6 +320,16 @@ public class Tablero extends JPanel {
             if (Puntos.comerPowerPelletEspecial(fila, columna)) {
                 activarModoAsustado();
                 pacman.agregarCargasRomperParedes(CARGAS_POR_PELLET_ESPECIAL);
+            }
+            
+            // Superbolita 7: activa el Rayo Veloz.
+            if (Puntos.comerRayoVeloz(fila, columna)) {
+                activarRayoVeloz();
+            }
+
+            // Superbolita 8: activa el Rey del Laberinto.
+            if (Puntos.comerReyDelLaberinto(fila, columna)) {
+                activarReyDelLaberinto();
             }
 
             // Comprobamos si ya no queda ningún punto en el mapa.
@@ -306,6 +360,48 @@ public class Tablero extends JPanel {
 
         moverSegunDireccionActual();
         aplicarTunel();
+    }
+
+    // Activa Rayo Veloz durante 6 segundos.
+    private void activarRayoVeloz() {
+        if (juegoTerminado) return;
+        long ahora = System.currentTimeMillis();
+        finRayoVelozEnMillis = ahora + DURACION_PODER_ESPECIAL_MS;
+        // Los poderes especiales no se acumulan: activar uno cancela el otro.
+        finReyLaberintoEnMillis = 0;
+        pacman.setVelocidad(VELOCIDAD_NORMAL_PACMAN);
+    }
+
+    // Activa invencibilidad y huida de los fantasmas durante 6 segundos.
+    private void activarReyDelLaberinto() {
+        if (juegoTerminado) return;
+        long ahora = System.currentTimeMillis();
+        finReyLaberintoEnMillis = ahora + DURACION_PODER_ESPECIAL_MS;
+        // Los poderes especiales no se acumulan: activar uno cancela el otro.
+        finRayoVelozEnMillis = 0;
+        pacman.setVelocidad(VELOCIDAD_NORMAL_PACMAN);
+    }
+
+    private boolean rayoVelozActivo() {
+        return finRayoVelozEnMillis != 0
+                && System.currentTimeMillis() < finRayoVelozEnMillis;
+    }
+
+    private boolean reyDelLaberintoActivo() {
+        return finReyLaberintoEnMillis != 0
+                && System.currentTimeMillis() < finReyLaberintoEnMillis;
+    }
+
+    // Actualiza vencimientos para restaurar el movimiento normal al terminar.
+    private void actualizarPoderesEspeciales() {
+        long ahora = System.currentTimeMillis();
+        if (finRayoVelozEnMillis != 0 && ahora >= finRayoVelozEnMillis) {
+            finRayoVelozEnMillis = 0;
+            pacman.setVelocidad(VELOCIDAD_NORMAL_PACMAN);
+        }
+        if (finReyLaberintoEnMillis != 0 && ahora >= finReyLaberintoEnMillis) {
+            finReyLaberintoEnMillis = 0;
+        }
     }
 
     // Habilidad de romper paredes con la tecla F.
@@ -582,7 +678,8 @@ public class Tablero extends JPanel {
     private String elegirDireccionFantasma(int fila, int columna, Fantasma fantasma) {
 
         boolean comido = Fantasma.COMIDO.equals(fantasma.getEstado());
-        boolean huyendo = Fantasma.ASUSTADO.equals(fantasma.getEstado());
+        boolean huyendo = Fantasma.ASUSTADO.equals(fantasma.getEstado())
+                || reyDelLaberintoActivo();
 
         // CASO 1: dentro de la casa y no es un par de ojos. Forzamos la salida.
         if (esCasaFantasmas(fila, columna) && !comido) {
@@ -851,6 +948,11 @@ public class Tablero extends JPanel {
             return false;
         }
 
+        // El Rey del Laberinto evita perder vidas mientras dura.
+        if (reyDelLaberintoActivo()) {
+            return false;
+        }
+
         // Un fantasma congelado no hace daño.
         if (estaCongelado(fantasma)) {
             return false;
@@ -908,6 +1010,9 @@ public class Tablero extends JPanel {
 
         finAsustadoEnMillis = 0;
         finCongeladoEnMillis = 0;
+        finRayoVelozEnMillis = 0;
+        finReyLaberintoEnMillis = 0;
+        pacman.setVelocidad(VELOCIDAD_NORMAL_PACMAN);
         fantasmasComidosSeguidos = 0;
 
         inicioJuegoMillis = System.currentTimeMillis();
@@ -1003,7 +1108,25 @@ public class Tablero extends JPanel {
         int cargasHielo = pacman.getCargasCongelar();
         if (cargasHielo > 0) {
             dibujarPanelHabilidad(g, yPanel, "[G] Congelar", cargasHielo, Color.CYAN);
+            yPanel += 60;
         }
+
+        if (rayoVelozActivo()) {
+            g.setColor(Color.YELLOW);
+            g.setFont(g.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+            g.drawString("RAYO VELOZ: " + segundosRestantes(finRayoVelozEnMillis) + "s", getWidth() - 185, yPanel + 20);
+            yPanel += 25;
+        }
+
+        if (reyDelLaberintoActivo()) {
+            g.setColor(new Color(255, 215, 0));
+            g.setFont(g.getFont().deriveFont(java.awt.Font.BOLD, 14f));
+            g.drawString("REY DEL LABERINTO: " + segundosRestantes(finReyLaberintoEnMillis) + "s", getWidth() - 230, yPanel + 20);
+        }
+    }
+
+    private long segundosRestantes(long finEnMillis) {
+        return Math.max(0, (finEnMillis - System.currentTimeMillis() + 999) / 1000);
     }
 
     // Dibuja un panelcito con el nombre de la habilidad y sus cargas.
@@ -1158,6 +1281,23 @@ public class Tablero extends JPanel {
                     case 5:
                         // Power Pellet especial: bola verde.
                         dibujarSpriteCentrado(g, spriteBolaVerde, x, y, 20, 21);
+                        break;
+                        
+                        case 7:
+                        // Rayo Veloz: bolita amarilla con un rayo.
+                        g.setColor(Color.YELLOW);
+                        g.fillOval(x + 3, y + 3, TILE_SIZE - 6, TILE_SIZE - 6);
+
+                        g.setColor(Color.BLACK);
+                        g.drawLine(x + 12, y + 5, x + 8, y + 11);
+                        g.drawLine(x + 8, y + 11, x + 13, y + 11);
+                        g.drawLine(x + 13, y + 11, x + 10, y + 16);
+                        break;
+
+                    case 8:
+                        // Rey del Laberinto: bolita naranja.
+                        g.setColor(Color.ORANGE);
+                        g.fillOval(x + 3, y + 3, TILE_SIZE - 6, TILE_SIZE - 6);
                         break;
 
                     case 6:
