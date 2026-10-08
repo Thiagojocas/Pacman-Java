@@ -5,10 +5,10 @@ public class Puntos {
     // Guarda el puntaje actual de Pac-Man.
     // Empieza en 0 porque todavía no comió ningún punto.
     private static int puntaje = 0;
-    
+
     // Guarda la cantidad de puntos normales que todavía quedan en el mapa.
     private static int puntosRestantes = contarPuntosIniciales();
-    
+
     // Cuenta todos los puntos normales que existen en el mapa al comenzar el juego.
     private static int contarPuntosIniciales() {
 
@@ -25,10 +25,14 @@ public class Puntos {
         return cantidad;
     }
 
-    // Este método recibe la fila y la columna donde se encuentra Pac-Man.
-    // Devuelve:
-    // true  -> si encontró y comió un punto.
-    // false -> si no había un punto.
+    // Reinicia puntaje y contador de puntos para una partida nueva.
+    // Llamarlo SIEMPRE después de mapa.reiniciar().
+    public static void reiniciar() {
+        puntaje = 0;
+        puntosRestantes = contarPuntosIniciales();
+    }
+
+    // true -> si encontró y comió un punto. false -> si no había un punto.
     public static boolean comerPunto(int fila, int columna) {
 
         if (fila < 0 || fila >= mapa.MATRIZ.length ||
@@ -42,7 +46,7 @@ public class Puntos {
             mapa.MATRIZ[fila][columna] = 0;
 
             puntaje += 10;
-            
+
             puntosRestantes--;
 
             return true;
@@ -94,13 +98,11 @@ public class Puntos {
         return false;
     }
 
-    // Permite sumar puntos "sueltos", como los que se ganan al comerse
-    // a un fantasma asustado.
+    // Permite sumar puntos "sueltos", como los de comer un fantasma asustado.
     public static void sumarPuntos(int cantidad) {
         puntaje += cantidad;
     }
 
-    // Este método permite que otras clases puedan consultar cuánto puntaje tiene actualmente Pac-Man. 
     public static int getPuntaje() {
         return puntaje;
     }

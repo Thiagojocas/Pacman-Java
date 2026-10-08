@@ -61,7 +61,11 @@ public class Menu extends JPanel {
     }
 
     private void iniciarJuego() {
-        Tablero tablero = new Tablero();
+        // Dejamos todo limpio para una partida nueva.
+        mapa.reiniciar();
+        Puntos.reiniciar();
+
+        Tablero tablero = new Tablero(ventana);
 
         ventana.remove(this);
         ventana.add(tablero);
@@ -97,7 +101,6 @@ public class Menu extends JPanel {
         g.drawString(subtitulo, (ancho - anchoSub) / 2, 260);
 
         // ----- HEADER CONTROLES -----
-        // FIX: ahora sí dibuja el texto del encabezado.
         g.setColor(Color.CYAN);
         g.setFont(new Font("Arial", Font.BOLD, 18));
         String controles = "CONTROLES";
@@ -105,13 +108,13 @@ public class Menu extends JPanel {
         g.drawString(controles, (ancho - anchoControles) / 2, 310);
 
         // ----- LÍNEAS DE INSTRUCCIONES -----
-        // FIX: antes faltaban el array de líneas y el loop que las dibuja.
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.PLAIN, 14));
 
         String[] lineas = {
             "Flechas: mover a Pac-Man",
-            "F: romper pared (necesitás una carga)",
+            "F: romper pared (bolas verdes de arriba: 3 cargas)",
+            "G: congelar fantasmas (bolas de abajo: 1 carga)",
             "Come todos los puntos para ganar",
             "¡Cuidado con los fantasmas!"
         };

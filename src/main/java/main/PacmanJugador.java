@@ -10,9 +10,13 @@ public class PacmanJugador {
     private String direccionActual;   // la que se está ejecutando de verdad
     private String direccionDeseada;  // la última tecla que tocó el jugador
 
-    // cuántas veces puede romper paredes con la tecla F.
-    // Cada Power Pellet especial (tile 5) suma 1.
+    // Cuántas veces puede romper paredes con la tecla F.
+    // Cada Power Pellet especial (tile 5) suma 3.
     private int cargasRomperParedes;
+
+    // Cuántas veces puede congelar fantasmas con la tecla G.
+    // Cada Power Pellet normal (tile 3) suma 1.
+    private int cargasCongelar;
 
     public PacmanJugador(int xInicial, int yInicial) {
         x = xInicial;
@@ -21,6 +25,7 @@ public class PacmanJugador {
         direccionActual = null;
         direccionDeseada = null;
         cargasRomperParedes = 0;
+        cargasCongelar = 0;
     }
 
     public int getX() {
@@ -59,7 +64,7 @@ public class PacmanJugador {
         this.direccionDeseada = direccionDeseada;
     }
 
-    // NUEVO: manejo de las cargas para romper paredes.
+    // ===== ROMPER PAREDES (tecla F) =====
     public int getCargasRomperParedes() {
         return cargasRomperParedes;
     }
@@ -68,10 +73,33 @@ public class PacmanJugador {
         cargasRomperParedes++;
     }
 
+    // Suma varias cargas de una vez.
+    public void agregarCargasRomperParedes(int cantidad) {
+        cargasRomperParedes += cantidad;
+    }
+
     // Intenta consumir una carga. Devuelve true si había disponible.
     public boolean usarCargaRomperParedes() {
         if (cargasRomperParedes > 0) {
             cargasRomperParedes--;
+            return true;
+        }
+        return false;
+    }
+
+    // ===== CONGELAR FANTASMAS (tecla G) =====
+    public int getCargasCongelar() {
+        return cargasCongelar;
+    }
+
+    public void agregarCargaCongelar() {
+        cargasCongelar++;
+    }
+
+    // Intenta consumir una carga. Devuelve true si había disponible.
+    public boolean usarCargaCongelar() {
+        if (cargasCongelar > 0) {
+            cargasCongelar--;
             return true;
         }
         return false;

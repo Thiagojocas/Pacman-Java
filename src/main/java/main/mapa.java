@@ -120,4 +120,24 @@ public class mapa {
         // FILA 30
         {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
     };
+
+    // ===== REINICIO DEL MAPA =====
+    // Copia del mapa original, para poder reiniciar la partida.
+    // IMPORTANTE: tiene que estar DESPUÉS de MATRIZ (orden de inicialización estática).
+    private static final int[][] ORIGINAL = copiar(MATRIZ);
+
+    private static int[][] copiar(int[][] origen) {
+        int[][] copia = new int[origen.length][];
+        for (int i = 0; i < origen.length; i++) {
+            copia[i] = origen[i].clone();
+        }
+        return copia;
+    }
+
+    // Restaura el mapa a su estado inicial (puntos, paredes, pellets).
+    public static void reiniciar() {
+        for (int i = 0; i < ORIGINAL.length; i++) {
+            MATRIZ[i] = ORIGINAL[i].clone();
+        }
+    }
 }
