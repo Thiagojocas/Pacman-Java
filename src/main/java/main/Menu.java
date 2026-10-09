@@ -38,6 +38,7 @@ public class Menu extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
                 iniciarJuego();
+                Sonido.detener(Sonido.AMBIENTE);
             }
         });
         add(btnJugar);
@@ -58,6 +59,10 @@ public class Menu extends JPanel {
             }
         });
         add(btnSalir);
+           // Música de ambiente mientras estás en el menú.
+        Sonido.detener(Sonido.GAME_OVER);
+        Sonido.reproducirLoop(Sonido.AMBIENTE);  
+    
     }
 
     private void iniciarJuego() {

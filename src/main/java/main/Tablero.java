@@ -1035,6 +1035,8 @@ public class Tablero extends JPanel {
 
         timer.stop();
 
+         Sonido.detenerTodos();
+        Sonido.reproducir(Sonido.GAME_OVER);
         // Botón para volver al menú principal.
         mostrarBotonVolverAlMenu();
 
